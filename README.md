@@ -45,9 +45,9 @@ The intended deployment uses Vercel for the Next.js app and GitHub Actions for s
 
 ## Participation and contributions
 
-This is a university project for the Department of Artificial Intelligence at NFC IET Multan. Only people currently enrolled as NFC-IET university students may contribute. Repository write access is granted only to student accounts approved by the project maintainers, and changes are reviewed through pull requests. Contributions from nonstudents are not accepted.
+This is a university project for the Department of Artificial Intelligence at NFC IET Multan. Any current NFC-IET student may contribute by opening a pull request. Project maintainers may ask contributors to verify their student status before accepting a change. Direct write access to the repository is limited to the maintainers.
 
-Because this repository is public, GitHub may still let people outside the project fork it and submit pull requests. They cannot push directly to this repository, and outside contributions will not be merged. The MIT license allows reuse of the code; it does not grant repository write access or project participation.
+Because this repository is public, GitHub lets anyone fork it and submit a pull request. Only maintainers can push directly to this repository, and changes from people who are not current NFC-IET students will not be merged. The MIT license allows reuse of the code; it does not grant repository write access or project participation.
 
 ## People
 
