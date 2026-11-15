@@ -52,7 +52,7 @@ Because this repository is public, GitHub lets anyone fork it and submit a pull 
 ## People
 
 - **Supervised by:** Dr. Muhammad Siddique, Head of Department, AI, NFC IET Multan
-- **Built and maintained by:** Muawiya Amir, student, AI Department, NFC IET Multan
+- **Built and maintained by:** Muawiya Amir, student developer and code owner, AI Department, NFC IET Multan ([2k24bsai72@undergrad.nfciet.edu.pk](mailto:2k24bsai72@undergrad.nfciet.edu.pk))
 - **Editors:** Muawiya Amir, Faizan Ishfaq, Shazada M. Umar
 
 A [Coding Moves](https://codingmoves.com) project.
