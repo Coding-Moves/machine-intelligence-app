@@ -43,11 +43,9 @@ Never commit real API keys. Use the example environment file when it is added.
 
 The intended deployment uses Vercel for the Next.js app and GitHub Actions for scheduled jobs and PDF builds. Deployment workflows and environment setup will be added in later pull requests.
 
-## Participation and contributions
+## Contributions
 
-This is a university project for the Department of Artificial Intelligence at NFC IET Multan. Any current NFC-IET student may contribute by opening a pull request. Project maintainers may ask contributors to verify their student status before accepting a change. Direct write access to the repository is limited to the maintainers.
-
-Because this repository is public, GitHub lets anyone fork it and submit a pull request. Only maintainers can push directly to this repository, and changes from people who are not current NFC-IET students will not be merged. The MIT license allows reuse of the code; it does not grant repository write access or project participation.
+Contributions are for current NFC-IET students. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## People
 
