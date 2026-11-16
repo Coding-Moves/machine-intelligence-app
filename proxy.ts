@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
   );
 
   const { data, error } = await supabase.auth.getClaims();
-  if (error || !data.claims) {
+  if (error || !data?.claims) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
