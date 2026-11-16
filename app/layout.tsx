@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
+import { magazine } from "@/config/magazine";
+import { siteCopy } from "@/content/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -14,24 +16,24 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   ),
   title: {
-    default: "Machine Intelligence | NFC IET Multan",
-    template: "%s | Machine Intelligence",
+    default: siteCopy.seo.title,
+    template: "%s | " + magazine.name,
   },
   description:
-    "AI news and research, carefully reviewed by student editors at NFC IET Multan.",
-  applicationName: "Machine Intelligence",
+    siteCopy.seo.description,
+  applicationName: magazine.name,
   openGraph: {
     type: "website",
-    siteName: "Machine Intelligence",
-    title: "Machine Intelligence | NFC IET Multan",
+    siteName: magazine.name,
+    title: siteCopy.seo.title,
     description:
-      "AI news and research, carefully reviewed by student editors at NFC IET Multan.",
+      siteCopy.seo.description,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Machine Intelligence | NFC IET Multan",
+    title: siteCopy.seo.title,
     description:
-      "AI news and research, carefully reviewed by student editors at NFC IET Multan.",
+      siteCopy.seo.description,
   },
 };
 

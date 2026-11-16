@@ -8,7 +8,7 @@ export type SourceRegion = "pakistan" | "global";
 export interface Source {
   id: string;
   name: string;
-  feedUrl: string;
+  feedUrl: string | null;
   homepage: string;
   region: SourceRegion;
   kind: SourceKind;

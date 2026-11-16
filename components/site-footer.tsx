@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
+import { magazine } from "@/config/magazine";
 import { siteCopy } from "@/content/site";
 
 export function SiteFooter() {
@@ -7,7 +8,7 @@ export function SiteFooter() {
     <footer className="border-t border-line bg-paper py-8">
       <Container className="flex flex-col gap-5 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
         <p>
-          © 2026 {siteCopy.footer.copyright} · {siteCopy.footer.builtBy}
+          © {magazine.copyrightYear} {siteCopy.footer.copyright} · {siteCopy.footer.builtBy}
         </p>
         <nav
           aria-label={siteCopy.footer.navigation}

@@ -1,5 +1,6 @@
 export const magazine = {
   name: "Machine Intelligence",
+  copyrightYear: 2026,
   department: "Department of Artificial Intelligence",
   departmentShort: "AI Department",
   university: "NFC Institute of Engineering and Technology, Multan",

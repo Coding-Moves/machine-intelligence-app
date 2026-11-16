@@ -3,6 +3,10 @@ export const siteCopy = {
     headline: "The changing shape of AI",
     note: "A sample cover layout from the May 2026 design draft.",
     label: "Sample",
+    referenceDate: "May 2026",
+    issueLabel: "Issue",
+    previewNote: "A typographic preview of the magazine cover.",
+    magazineLabel: "AI department magazine",
   },
   nav: {
     issues: "Issues",
@@ -17,7 +21,8 @@ export const siteCopy = {
     title: "A clearer view of what is changing in AI.",
     intro:
       "Machine Intelligence follows important AI news, research, and work in Pakistan. Student editors check every story before it appears in an issue.",
-    latest: "Read the sample issue",
+    latest: "Read the latest issue",
+    sampleButton: "Open the May sample preview",
     browse: "Browse issues",
     issueLabel: "Latest issue",
     contentsLabel: "In this issue",
@@ -63,6 +68,13 @@ export const siteCopy = {
     emptyDescription:
       "The archive will grow when the editorial team publishes its first edition.",
     open: "Open issue",
+    dateUnknown: "Date not listed",
+    sampleDate: "May 2026 · sample preview",
+    unknownTitle: "Issue not found",
+    storiesHeading: "Stories and sources",
+    storiesTitle: "Story source notes",
+    storiesEmptyTitle: "Story links are not available yet.",
+    storiesEmpty: "Source-linked story details will be shown here when they are part of the published edition.",
   },
   about: {
     eyebrow: "About the magazine",
@@ -126,6 +138,18 @@ export const siteCopy = {
     contactTitle: "Questions",
     contactText:
       "For a privacy question, contact the editorial team through the repository's issue tracker.",
+  },
+  notFound: {
+    eyebrow: "404 · Page not found",
+    title: "This page is not here.",
+    description: "The address may have changed, or the page may not exist.",
+    returnHome: "Return to the magazine",
+  },
+  seo: {
+    title: "Machine Intelligence | NFC IET Multan",
+    description: "AI news and research, carefully reviewed by student editors at NFC IET Multan.",
+    ogAlt: "Machine Intelligence, the AI department magazine at NFC IET Multan",
+    ogFooter: "NFC IET Multan · Built by Coding Moves",
   },
   login: {
     eyebrow: "Editor access",
