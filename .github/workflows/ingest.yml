@@ -1,0 +1,41 @@
+name: Scheduled ingest
+
+on:
+  schedule:
+    - cron: "0 1,8,15 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ingest-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  call-ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the ingest stub
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [[ -z "$APP_URL" ]]; then
+            echo "::notice title=Configuration::APP_URL is not set; skipping the scheduled request."
+            exit 0
+          fi
+          if [[ -z "$CRON_SECRET" ]]; then
+            echo "::error title=Configuration::CRON_SECRET is not set."
+            exit 1
+          fi
+          http_code=$(curl --silent --show-error \
+            --output "$RUNNER_TEMP/ingest-response.json" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/ingest")
+          cat "$RUNNER_TEMP/ingest-response.json"
+          if [[ ! "$http_code" =~ ^2[0-9][0-9]$ ]]; then
+            echo "::error title=Ingest request failed::The endpoint returned HTTP $http_code."
+            exit 1
+          fi
