@@ -1,17 +1,27 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-function safeNextPath(value: string | null) {
+function safeNextPath(value: string | null, origin: string) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return "/desk";
   }
-  return value;
+
+  try {
+    const target = new URL(value, origin);
+    if (target.origin !== origin) return "/desk";
+    return target.pathname + target.search + target.hash;
+  } catch {
+    return "/desk";
+  }
 }
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const nextPath = safeNextPath(requestUrl.searchParams.get("next"));
+  const nextPath = safeNextPath(
+    requestUrl.searchParams.get("next"),
+    requestUrl.origin,
+  );
   const supabase = await createSupabaseServerClient();
 
   if (code) {
