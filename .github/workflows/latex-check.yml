@@ -24,13 +24,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-      - name: Create a plain cover placeholder
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes imagemagick
-          convert -size 900x1300 xc:"#f9f7f1" \
-            -fill "#1a3a31" -draw "rectangle 0,0 899,360" \
-            -quality 85 latex/reference/cover.jpg
       - name: Compile the May reference
         uses: xu-cheng/latex-action@v4
         with:

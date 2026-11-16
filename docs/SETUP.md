@@ -51,6 +51,8 @@ supabase db push --remote
 
 The migration creates the editors, editions, and runs tables; enables the vector extension; applies row-level security; and creates the public issues and private drafts storage buckets.
 
+The May LaTeX reference uses the committed `latex/reference/cover-placeholder.png`. Keep real cover art in Supabase Storage's `issues` bucket and only use artwork the project has permission to publish.
+
 Add the first real admin in the Supabase SQL Editor. Replace the sample values before running this statement:
 
 ~~~sql
