@@ -29,10 +29,10 @@ export async function sendMagicLink(
     .maybeSingle();
 
   if (lookupError) {
-    return { message: siteCopy.login.genericError, kind: "error" };
+    return { message: siteCopy.login.checkInbox, kind: "success" };
   }
   if (!editor) {
-    return { message: siteCopy.login.notEditor, kind: "error" };
+    return { message: siteCopy.login.checkInbox, kind: "success" };
   }
 
   const { NEXT_PUBLIC_SITE_URL } = getPublicEnv();
@@ -49,11 +49,8 @@ export async function sendMagicLink(
   });
 
   if (error) {
-    return { message: siteCopy.login.genericError, kind: "error" };
+    return { message: siteCopy.login.checkInbox, kind: "success" };
   }
 
-  return {
-    message: siteCopy.login.sent + " " + siteCopy.login.checkInbox,
-    kind: "success",
-  };
+  return { message: siteCopy.login.checkInbox, kind: "success" };
 }
