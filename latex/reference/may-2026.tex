@@ -1,0 +1,1120 @@
+% ─────────────────────────────────────────────────────────────────
+%  MACHINE INTELLIGENCE DEVELOPMENT — MAY 2026 EDITION
+%  Updated: Fresh news (Late Apr–May 2026) | Clickable references
+%  Image placeholders added | Whitespace optimized
+% ─────────────────────────────────────────────────────────────────
+
+\documentclass[10pt, a4paper]{article}
+
+% ─────────────────────────────────────────────
+%  PACKAGES
+% ─────────────────────────────────────────────
+\usepackage[a4paper, top=2.0cm, bottom=2.2cm, left=1.6cm, right=1.6cm,
+            columnsep=0.7cm]{geometry}
+\usepackage{fontenc}
+\usepackage{inputenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multicol}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{setspace}
+\usepackage{mdframed}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{tcolorbox}
+\usepackage{tikz}
+\usepackage{pgfornament}
+\usepackage{lettrine}
+\usepackage{contour}
+\usepackage{soul}
+\usepackage{dashrule}
+\usepackage{tabularx}
+\usepackage{colortbl}
+\usepackage{pifont}
+\usepackage{fontawesome5}
+\usepackage{adjustbox}
+
+\tcbuselibrary{skins, breakable, shadows}
+
+% ─────────────────────────────────────────────
+%  COLOUR PALETTE
+% ─────────────────────────────────────────────
+\definecolor{navydeep}{RGB}{5, 28, 64}
+\definecolor{cobalt}{RGB}{0, 82, 165}
+\definecolor{electric}{RGB}{0, 153, 218}
+\definecolor{crimson}{RGB}{185, 15, 40}
+\definecolor{amber}{RGB}{255, 165, 0}
+\definecolor{emerald}{RGB}{0, 130, 100}
+\definecolor{platinumgray}{RGB}{245, 246, 250}
+\definecolor{midgray}{RGB}{108, 117, 132}
+\definecolor{darkgray}{RGB}{40, 44, 52}
+\definecolor{ruleblue}{RGB}{0, 82, 165}
+\definecolor{covergrad1}{RGB}{2, 16, 45}
+\definecolor{covergrad2}{RGB}{0, 60, 120}
+\definecolor{boxbg1}{RGB}{235, 243, 255}
+\definecolor{boxbg2}{RGB}{255, 248, 235}
+\definecolor{boxbg3}{RGB}{235, 255, 248}
+\definecolor{boxbg4}{RGB}{255, 235, 238}
+
+% ─────────────────────────────────────────────
+%  SECTION FORMATTING
+% ─────────────────────────────────────────────
+\titleformat{\section}
+  {\color{navydeep}\fontsize{13}{15}\selectfont\bfseries\scshape\MakeUppercase}
+  {}{0em}{}
+  [\vspace{0.1em}{\color{cobalt}\rule{\linewidth}{1.4pt}}\vspace{0.3em}]
+
+\titleformat{\subsection}
+  {\color{crimson}\normalsize\bfseries}
+  {}{0em}{}
+
+\titleformat{\subsubsection}
+  {\color{cobalt}\small\bfseries\itshape}
+  {}{0em}{}
+
+\titlespacing*{\section}{0pt}{1.4ex plus 0.4ex}{0.8ex plus 0.2ex}
+\titlespacing*{\subsection}{0pt}{1.0ex plus 0.3ex}{0.5ex plus 0.1ex}
+\titlespacing*{\subsubsection}{0pt}{0.7ex}{0.3ex}
+
+% ─────────────────────────────────────────────
+%  HEADER / FOOTER
+% ─────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+
+\fancyhead[L]{%
+  \small\color{cobalt}\textbf{MI}\ \textbar\
+  \textit{\color{midgray}Machine Intelligence }}
+
+\fancyhead[R]{%
+  \small\color{midgray}\textit{NFC IET Multan\,---\,AI Department\ \
+  \textbf{May 2026}}}
+
+\fancyfoot[C]{%
+  \footnotesize\color{cobalt}\textbf{---\ \thepage\ ---}}
+
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% slight space added before line
+\fancyhead[C]{\vspace{-7pt}\color{electric}\rule{\linewidth}{0.4pt}}
+
+% ─────────────────────────────────────────────
+%  CAPTION STYLE
+% ─────────────────────────────────────────────
+\captionsetup{
+  font={scriptsize, it},
+  labelfont={bf, color=cobalt},
+  justification=centering,
+  skip=3pt
+}
+
+% ─────────────────────────────────────────────
+%  HYPERREF
+% ─────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=cobalt,
+  urlcolor=crimson,
+  citecolor=cobalt,
+  pdfauthor={Dr. Muhammad Siddique, NFC IET Multan},
+  pdftitle={Machine Intelligence --- May 2026},
+  pdfsubject={AI Departmental Magazine --- Premium Edition}
+}
+
+% ─────────────────────────────────────────────
+%  TCOLORBOX ENVIRONMENTS
+% ─────────────────────────────────────────────
+\newtcolorbox{insightbox}[1][]{
+  enhanced, breakable,
+  colback=boxbg1, colframe=cobalt,
+  boxrule=0.8pt, arc=3pt,
+  left=7pt, right=7pt, top=6pt, bottom=6pt,
+  shadow={1.5pt}{-1.5pt}{0pt}{black!10},
+  title style={colback=cobalt, colframe=cobalt},
+  fonttitle=\small\bfseries\color{white},
+  #1
+}
+
+\newtcolorbox{alertbox}[1][]{
+  enhanced, breakable,
+  colback=boxbg4, colframe=crimson,
+  boxrule=0.8pt, arc=3pt,
+  left=7pt, right=7pt, top=6pt, bottom=6pt,
+  shadow={1.5pt}{-1.5pt}{0pt}{black!10},
+  fonttitle=\small\bfseries\color{white},
+  title style={colback=crimson},
+  #1
+}
+
+\newtcolorbox{statbox}[1][]{
+  enhanced, breakable,
+  colback=boxbg2, colframe=amber,
+  boxrule=0.8pt, arc=3pt,
+  left=7pt, right=7pt, top=6pt, bottom=6pt,
+  shadow={1.5pt}{-1.5pt}{0pt}{black!8},
+  fonttitle=\small\bfseries\color{navydeep},
+  title style={colback=amber},
+  #1
+}
+
+\newtcolorbox{databox}[1][]{
+  enhanced, breakable,
+  colback=boxbg3, colframe=emerald,
+  boxrule=0.8pt, arc=3pt,
+  left=7pt, right=7pt, top=6pt, bottom=6pt,
+  shadow={1.5pt}{-1.5pt}{0pt}{black!8},
+  fonttitle=\small\bfseries\color{white},
+  title style={colback=emerald},
+  #1
+}
+
+\newtcolorbox{pullquote}{
+  enhanced,
+  colback=navydeep, colframe=electric,
+  boxrule=0pt, arc=0pt,
+  leftrule=4pt,
+  left=10pt, right=10pt, top=8pt, bottom=8pt,
+}
+
+\newtcolorbox{sidestrip}[1][]{
+  enhanced,
+  colback=navydeep, colframe=navydeep,
+  arc=4pt,
+  left=8pt, right=8pt, top=7pt, bottom=7pt,
+  shadow={2pt}{-2pt}{0pt}{black!20},
+  fonttitle=\small\bfseries\color{electric},
+  title style={colback=cobalt},
+  #1
+}
+
+% ─────────────────────────────────────────────
+%  UTILITY MACROS
+% ─────────────────────────────────────────────
+\newcommand{\kpinum}[1]{{\fontsize{22}{24}\selectfont\bfseries\color{crimson}#1}}
+\newcommand{\kpilabel}[1]{{\footnotesize\color{midgray}\MakeUppercase{#1}}}
+\newcommand{\sectiontag}[1]{%
+  \noindent\colorbox{cobalt}{%
+    \,\footnotesize\bfseries\color{white}\MakeUppercase{#1}\,}\,%
+}
+\newcommand{\hottag}{%
+  \colorbox{crimson}{\,\scriptsize\bfseries\color{white}BREAKING\,}\ %
+}
+\newcommand{\newtag}{%
+  \colorbox{emerald}{\,\scriptsize\bfseries\color{white}NEW\,}\ %
+}
+\newcommand{\ruled}{%
+  \vspace{0.3em}{\color{electric}\rule{\linewidth}{0.4pt}}\vspace{0.3em}}
+
+% ─────────────────────────────────────────────────────────────────
+%  DOCUMENT
+% ─────────────────────────────────────────────────────────────────
+\begin{document}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\color{darkgray}
+
+% ═══════════════════════════════════════════════════════════════
+%  PAGE 1 — PREMIUM COVER
+% ═══════════════════════════════════════════════════════════════
+\thispagestyle{empty}
+\newgeometry{top=0cm, bottom=0cm, left=0cm, right=0cm}
+
+\begin{tikzpicture}[remember picture, overlay]
+  \shade[top color=covergrad1, bottom color=covergrad2]
+    (current page.south west) rectangle (current page.north east);
+  \fill[electric]
+    (current page.north west) rectangle
+    ([yshift=-0.55cm]current page.north east);
+ \fill[crimson]
+    (current page.south west) rectangle
+    ([yshift=3.0cm]current page.south east);
+  \fill[crimson]
+    ([xshift=1.4cm]current page.south west) rectangle
+    ([xshift=1.78cm]current page.north west);
+  \draw[electric!40, line width=1pt, rounded corners=2pt]
+    ([xshift=2cm, yshift=6.5cm]current page.south west)
+    rectangle
+    ([xshift=-1.5cm, yshift=-5.5cm]current page.north east);
+  \node[fill=crimson, text=white, font=\small\bfseries,
+        inner xsep=10pt, inner ysep=4pt, anchor=north west]
+    at ([xshift=2.1cm, yshift=-0.6cm]current page.north west)
+    {MAY 2026 EDITION \ \(\cdot\)\ \ ISSUE 1};
+\end{tikzpicture}
+
+\vspace*{0.65cm}
+
+\hspace{2.1cm}%
+\begin{minipage}[t]{0.82\linewidth}
+
+  {\fontsize{0.1}{0.1}\selectfont\bfseries\color{electric!80}\MakeUppercase{%
+     \&
+    \quad\textbullet\quad }
+
+  \vspace{1.2cm}
+
+  {\fontsize{46}{50}\selectfont\bfseries\color{white}
+    {\fontsize{0.1}{0.1}\selectfont '}\\[0.38em]
+    Machine \\[0.3em]
+    {\color{electric}Intelligence}}
+}
+
+\vspace{0.2cm}
+{\color{electric}\rule{0.55\linewidth}{1.8pt}}
+\vspace{0.3cm}
+
+% CHANGE 3: increased font sizes for subtitle and tagline
+{\LARGE\itshape\color{white!85}
+  A Fortnightly Insight into AI Progress in Pakistan \& Around the World}
+
+\vspace{0.2cm}
+
+{\large\color{white!65}
+  \textit{``Exploring the Future of Intelligent Systems ---
+  From Research to Reality''}}
+
+\vspace{0.6cm}
+
+% CHANGE 1: wider image, centered
+\begin{center}
+  \fbox{%
+    \includegraphics[width=\linewidth, height=11cm,
+    keepaspectratio]{cover.jpg}%
+  }
+\end{center}
+
+\vspace{0.5cm}
+
+% CHANGE 4: "In this Issue" box — navy background, trimmed content
+\definecolor{issuebg}{RGB}{255, 255, 255}
+\definecolor{issueborder}{RGB}{0, 82, 165}
+
+\setlength{\fboxsep}{10pt}
+
+\begin{center}
+\fcolorbox{issueborder}{issuebg}{%
+\begin{minipage}{0.90\linewidth}
+
+\begin{flushleft}
+    {\normalsize\bfseries\color{cobalt}\MakeUppercase{In this Issue}}\\[4pt]
+\end{flushleft}
+
+  {\small\color{darkgray}
+    \textbf{\color{crimson}Pakistan:} AI Seekho 2026 Launch \textbar\
+    Islamabad Declaration\\[3pt]
+    \textbf{\color{crimson}Global:} GPT-5.5 \& Claude Opus 4.7 \textbar\
+    DeepSeek V4\\[3pt]
+    \textbf{\color{crimson}Research:} Neuro-Symbolic Robotics \\ Lower energy in tested tasks \\[3pt]
+    \textbf{\color{crimson}Industry:} Physical AI Robotics \textbar\
+    Open-Weight Race
+  }
+
+\end{minipage}
+}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{tabular}{@{}l l}
+  {\large\bfseries\color{electric}Chief Author:} &
+    {\large\color{white}%
+      Dr.\ Muhammad Siddique, HOD, NFC IET Multan} \\[5pt]
+
+  {\large\bfseries\color{electric}Editors:} &
+    {\large\color{white}
+      Muawiya Amir \ \textbar\ \ Faizan Ishfaq \ \textbar\
+      \ Shazada M. Umar} \\[5pt]
+\end{tabular}
+
+\vspace{0.8cm}
+
+% CHANGE 2: larger font, electric color, cobalt background box
+\vspace{8pt}
+
+\begin{center}
+  {\Large\bfseries\color{white}
+    Department of Artificial Intelligence}\\[6pt]
+
+  {\normalsize\color{white}
+    NFC IET Multan}
+\end{center}
+
+\end{minipage}
+
+\vspace*{\fill}
+\clearpage
+\restoregeometry
+% ═══════════════════════════════════════════════════════════════
+%  PAGE 2 — EDITOR'S NOTE + HIGHLIGHTS
+% ═══════════════════════════════════════════════════════════════
+\onecolumn
+\vspace*{0.3em}
+
+
+% ── Editor's Note heading box ──────────────────────────────────
+\begin{center}
+  \colorbox{cobalt}{%
+    \parbox{0.97\linewidth}{%
+      \centering\vspace{5pt}
+      {\footnotesize\bfseries\color{electric}\MakeUppercase{Editor's Note}}\\[2pt]
+      {\scriptsize\color{white!80}\itshape
+        A message from the editorial desk of Machine Intelligence, May 2026}
+      \vspace{5pt}
+    }%
+  }
+\end{center}
+
+\vspace{0.4em}
+{\color{navydeep}\fontsize{20}{23}\selectfont\bfseries
+  Tracking Intelligence}\\[0.1em]
+{\color{cobalt}\large\itshape What Shaped AI This Fortnight}
+\ruled
+
+\begin{multicols}{2}
+
+{\small
+\lettrine[lines=2, lcolor=cobalt, lraise=0.1]{\textbf{T}}{}he period spanning late April to early May 2026 brought several new AI model announcements: Anthropic’s \textbf{Claude Opus 4.7} on April 16, OpenAI’s \textbf{GPT-5.5} on April 23, and the \textbf{DeepSeek V4 Preview} on April 24. These announcements covered different products and model types, so benchmark scores and prices should be compared with care.
+\href{https://openai.com/index/introducing-gpt-5-5/}{OpenAI, Apr 2026}
+
+At Tufts University, researchers reported a proof-of-concept neuro-symbolic system for robotic tasks. Their results are specific to the tasks tested and should not be read as a general estimate of AI’s energy use. The work was scheduled for presentation at the International Conference on Robotics and Automation in June 2026.
+\href{https://now.tufts.edu/2026/03/17/new-ai-models-could-slash-energy-use-while-dramatically-improving-performance}{Tufts Now, Mar 2026}.
+
+}
+\begin{flushright}
+{\small\itshape\color{cobalt} --- Dr.\ Muhammad Siddique}\\
+{\footnotesize\color{midgray}\itshape Editor-in-Chief, May 2026}
+\end{flushright}
+
+\columnbreak
+
+\begin{sidestrip}[title={\color{black}\faNewspaper\quad What Changed in AI This Fortnight}]
+  \setlist[itemize]{leftmargin=*, itemsep=3pt, topsep=2pt}
+  \begin{itemize}[label={\color{electric}\ding{228}}]
+    \item {\color{white}\textbf{GPT-5.5 (Apr 23):}}
+      {\small\color{white!80} OpenAI reports 82.7\% on Terminal-Bench 2.0}
+    \item {\color{white}\textbf{Claude Opus 4.7 (Apr 16):}}
+      {\small\color{white!80} SWE-bench Pro 64.3\%; complex reasoning flagship}
+    \item {\color{white}\textbf{DeepSeek V4 (Apr 24):}}
+      {\small\color{white!80} Open-weight MoE with 1M-token context}
+    \item {\color{white}\textbf{AI Seekho 2026:}}
+      {\small\color{white!80} Pakistan-Google nationwide vibe coding launch}
+    \item {\color{white}\textbf{Neuro-Symbolic AI:}}
+      {\small\color{white!80} Tufts robotics study reports task-specific energy savings}
+    \item {\color{white}\textbf{Physical AI Robotics:}}
+      {\small\color{white!80} NVIDIA GR00T + Isaac Sim 6.0 in full production}
+    \item {\color{white}\textbf{AI \& Cognition Warning:}}
+      {\small\color{white!80} Peer-reviewed study flags dependency risk in students}
+  \end{itemize}
+\end{sidestrip}
+
+\vspace{0.5em}
+
+\begin{pullquote}
+  {\small\itshape\color{white}
+  ``Three frontier models in eight days. One open-weight challenger at
+  one-seventh the cost. The frontier has stopped being a single
+  scoreboard. Pakistan must decide which lane it is building for --- and
+  build fast.''}\\[4pt]
+  {\footnotesize\color{electric}--- Editorial Board, MI May 2026}
+\end{pullquote}
+
+\end{multicols}
+
+\ruled
+
+% KPI strip
+\begin{center}
+\begin{tabular}{p{4.0cm} p{0.02cm} p{4.0cm} p{0.02cm}
+                p{4.0cm} p{0.02cm} p{4.0cm}}
+  \centering\kpinum{7}\\\kpilabel{Macro Trends Covered} &
+  & \centering\kpinum{3}\\\kpilabel{Pakistan Focus Stories} &
+  & \centering\kpinum{4}\\\kpilabel{Global Tech Updates} &
+  & \centering\kpinum{3}\\\kpilabel{Research Breakthroughs} \\
+\end{tabular}
+\end{center}
+
+\ruled
+
+\clearpage
+
+% ═══════════════════════════════════════════════════════════════
+%  PAGE 3 — PAKISTAN AI DEVELOPMENTS
+% ═══════════════════════════════════════════════════════════════
+\section{Pakistan AI Developments}
+
+\begin{multicols}{2}
+
+% ── Story 1 ──────────────────────────────────
+\subsection{AI Seekho 2026: A National Vibe-Coding Programme}
+
+\sectiontag{National Programme}\quad\hottag
+
+\medskip
+{\small
+On April 15, Pakistan's Ministry of IT and Telecom announced \textbf{AI Seekho 2026} with Google for Developers, Telenor Pakistan, and Innovista. The nationwide programme introduces participants to vibe coding with Google AI Studio and Antigravity.
+\href{https://www.moitt.gov.pk/NewsDetail/NjRhZWNhZGQtZGRkNC00MmJiLTk5YjctNmU0MTA0MjZhYTFi}{Ministry of IT & Telecom, Apr 2026}
+
+The Ministry says the programme focuses on building AI-powered apps, games, and practical solutions, with hackathons and a \textbf{PKR 2.5 million prize pool}. It describes AI Seekho as part of a wider national skills initiative; the broader workforce targets should not be confused with the number of AI Seekho participants.
+}
+
+\begin{insightbox}[title={\faCode\quad Programme Architecture}]
+  \begin{itemize}[label=\textbullet, itemsep=2pt, leftmargin=*]
+    \item {\small Tools: Google AI Studio + Antigravity}
+    \item {\small Projects: AI-powered apps, games, and practical solutions}
+    \item {\small Activities: hands-on learning and hackathons}
+    \item {\small Prize pool: PKR 2.5 million}
+  \end{itemize}
+\end{insightbox}
+
+{\small
+\textbf{For NFC IET:} Students can use the programme to try small app and game projects with AI tools. Treat the tools as a way to build and test ideas, while still learning the programming concepts behind the result.
+}
+
+\ruled
+
+% ── Story 2 ──────────────────────────────────
+\subsection{Islamabad AI Declaration: Nine Principles for Sovereign AI}
+
+\sectiontag{Policy}\quad\newtag
+
+\medskip
+{\small
+On February 9, 2026, Pakistan adopted the \textbf{Islamabad AI Declaration on Sovereign, Responsible, and Capability-Driven AI} at the Indus AI Summit. Federal IT Minister \textbf{Ms.\ Shaza Fatima Khawaja} presented the declaration.
+\href{https://www.pda.gov.pk/press-details.php?id=islamabad-ai-declaration}{Pakistan Digital Authority, Feb 2026}
+
+The declaration sets out nine principles, including sovereign infrastructure, human accountability, trusted governance, and a private-sector-led approach enabled by government. The Pakistan Digital Authority says it will help translate the declaration into governance and supervisory work.
+}
+
+\begin{alertbox}[title={\faBalanceScale\quad Three Governance Gaps to Close}]
+  {\small
+  \textbf{(i)} Building auditable AI stacks satisfying explainability mandates\\
+  \textbf{(ii)} Developing domestic NLP models aligned with national legal context\\
+  \textbf{(iii)} Embedding AI regulatory literacy in civil service and judiciary training
+  }
+\end{alertbox}
+
+
+% ── Story 3 ──────────────────────────────────
+\subsection{What One Small Study Says About AI and Essay Writing}
+
+\sectiontag{Education Policy}\quad\hottag
+
+\medskip
+{\small
+An MIT Media Lab study, listed by the lab as a 2025 arXiv preprint, examined essay writing with an LLM, a search engine, or no tools. Fifty-four participants took part in the first three sessions; 18 completed a later crossover session. The researchers reported differences in EEG connectivity and essay ownership between groups.
+\href{https://www-prod.media.mit.edu/publications/your-brain-on-chatgpt/}{MIT Media Lab, Jun 2025}
+
+This was a small study of essay-writing tasks. It does not show permanent memory loss or establish that the same effects occur with every model, subject, or way of using AI. More research is needed before drawing broad conclusions about students' learning.
+}
+
+\begin{insightbox}[title={\faGraduationCap\quad Research Opportunity}]
+  {\small
+  How does AI use affect learning in a specific course or task?
+  NFC IET students and teachers can investigate this with clear methods,
+  informed consent, and evidence that other researchers can review.
+  }
+\end{insightbox}
+
+\begin{pullquote}
+  {\small\color{white}\itshape
+  ``This study raises a question about essay-writing tasks. It does not
+  show permanent memory loss or settle how AI affects learning.''\\[4pt]
+  {\footnotesize\color{electric}--- Editorial Board, MI May 2026}}
+\end{pullquote}
+
+\end{multicols}
+
+\clearpage
+
+% ═══════════════════════════════════════════════════════════════
+%  PAGE 4 — GLOBAL AI NEWS
+% ═══════════════════════════════════════════════════════════════
+\section{Global AI News}
+
+\begin{multicols}{2}
+
+% ── Story: GPT-5.5 ───────────────────────────
+\subsection{GPT-5.5: OpenAI's Agentic Execution Flagship}
+
+\sectiontag{Frontier Models}\quad\hottag
+
+\medskip
+{\small
+OpenAI announced \textbf{GPT-5.5} on April 23, 2026, positioning it for complex professional work. At launch, OpenAI listed API prices of \$5 per million input tokens and \$30 per million output tokens, with a 1M-token context window.
+\href{https://openai.com/index/introducing-gpt-5-5/}{OpenAI, Apr 2026}
+
+OpenAI reported a \textbf{82.7\%} score on Terminal-Bench 2.0. At launch, OpenAI listed a \textbf{400K context window in Codex} and a 1M context window for the API model. These figures describe different products.
+\href{https://openai.com/index/introducing-gpt-5-5/}{OpenAI, Apr 2026}
+}
+
+\begin{statbox}[title={\faChartLine\quad GPT-5.5 Key Benchmarks}]
+  \begin{center}
+  \begin{tabular}{l r}
+    \small Terminal-Bench 2.0 & \small \textbf{82.7\%} \\
+    \small SWE-bench Pro      & \small \textbf{58.6\%} \\
+    \small API context window & \small \textbf{1M tokens} \\
+    \small API pricing (input/output) & \small \textbf{\$5/\$30 per 1M} \\
+  \end{tabular}
+  \end{center}
+\end{statbox}
+
+\ruled
+
+% ── Story: Opus 4.7 ──────────────────────────
+\subsection{Claude Opus 4.7: Reasoning and Agentic Coding Leader}
+
+\sectiontag{Frontier Models}\quad\hottag
+
+\medskip
+{\small
+Anthropic announced \textbf{Claude Opus 4.7} on April 16, 2026. Its release notes describe improvements in software engineering and long-running tasks, and list API prices of \$5 per million input tokens and \$25 per million output tokens. Anthropic also introduced an \textit{xhigh} effort level for Claude Code.
+\href{https://www.anthropic.com/news/claude-opus-4-7}{Anthropic, Apr 2026}
+
+Benchmark results from different model labs use different tests and settings. Check the stated benchmark, evaluation date, and model version before comparing scores.
+}
+
+\columnbreak
+
+% ── Story: DeepSeek V4 ───────────────────────
+\subsection{DeepSeek V4: The Open-Weight Frontier Challenger}
+
+\sectiontag{Open-Source AI}\quad\hottag
+
+\medskip
+{\small
+DeepSeek announced \textbf{V4 Preview} on April 24, 2026. Its release notes list two variants and a 1M-token context window for both.
+\href{https://api-docs.deepseek.com/news/news260424/}{DeepSeek API docs, Apr 2026}
+
+V4-Pro is listed at \textbf{1.6 trillion total parameters, with 49 billion active}; V4-Flash is listed at \textbf{284 billion total parameters, with 13 billion active}. Both support 1M context. These specifications describe the models, not a general ranking against other providers.
+\href{https://api-docs.deepseek.com/news/news260424/}{DeepSeek API docs, Apr 2026}
+}
+
+\begin{alertbox}[title={\faBolt\quad Why DeepSeek V4 Matters for Pakistan}]
+  {\small Open weights and long-context support may make the model useful for student projects. Check current model terms, API pricing, and hardware needs before choosing it for a project.}
+\end{alertbox}
+
+\ruled
+
+% ── Story: Multi-Model Routing ────────────────
+\subsection{Multi-Model Routing: The New Production Architecture}
+
+\sectiontag{Enterprise AI}\quad\newtag
+
+\medskip
+{\small
+\textbf{Multi-model routing} sends simpler tasks to smaller models and reserves stronger models for harder tasks. Whether that lowers costs without hurting quality depends on the workload, evaluation method, model prices, and routing logic.
+
+Teams should measure quality, latency, and total cost on their own tasks before adopting a routing setup.
+}
+
+\begin{insightbox}[title={\faServer\quad Strategic Routing Pattern}]
+  \begin{itemize}[label=\textbullet, itemsep=2pt, leftmargin=*]
+    \item {\small Define a representative set of tasks}
+    \item {\small Set quality and latency requirements}
+    \item {\small Route simpler tasks to smaller models}
+    \item {\small Measure total cost and quality before scaling}
+  \end{itemize}
+\end{insightbox}
+
+\end{multicols}
+
+\clearpage
+
+% ═══════════════════════════════════════════════════════════════
+%  PAGE 5 — MAJOR COMPANY UPDATES & TOOLS
+% ═══════════════════════════════════════════════════════════════
+\section{Major Company Updates \& Tools}
+
+\begin{multicols}{2}
+
+% ── Vibe Coding ──────────────────────────────────
+\subsection{Vibe Coding Goes Mainstream}
+
+{\footnotesize\bfseries\color{midgray}\MakeUppercase{%
+  Google AI Studio\ \textbullet\ Antigravity\ \textbullet\ Claude Code}}
+
+\medskip
+{\small
+\textbf{Vibe coding} uses natural-language prompts and AI tools as part of software development. The Ministry of IT describes AI Seekho 2026 as a programme for building apps, games, and practical solutions with Google AI Studio and Antigravity.
+\href{https://www.moitt.gov.pk/NewsDetail/NjRhZWNhZGQtZGRkNC00MmJiLTk5YjctNmU0MTA0MjZhYTFi}{Ministry of IT & Telecom, Apr 2026}
+
+These tools can help students make a first prototype, but generated code still needs to be read, tested, and reviewed for security. Learning the programming concepts remains important when a project grows beyond a small experiment.
+}
+
+\begin{alertbox}[title={\faFilm\quad The Capability Shift in Developer Tools}]
+  \begin{itemize}[itemsep=2pt, leftmargin=*,
+      label={\color{crimson}\ding{228}}]
+    \item {\small \textbf{Natural-language prompt $\to$ prototype:}
+      Review and test generated code}
+    \item {\small \textbf{Multi-file coding:}
+      Review and test changes across project files}
+    \item {\small \textbf{Model choice:}
+      Compare quality, cost, and hosting needs on your task}
+  \end{itemize}
+\end{alertbox}
+
+% ── NVIDIA Physical AI ────────────────────────────────────────────
+\subsection{NVIDIA Physical AI: From Simulation to Factory Floor}
+
+\sectiontag{Industrial AI}\quad\hottag
+
+{\small
+NVIDIA's \textbf{National Robotics Week 2026} showcase marked the transition of physical AI from experimental simulation to full-stack production deployment. Central to this is \textbf{Isaac GR00T} --- open foundation models enabling robots to understand natural language instructions and perform complex multi-step tasks using vision-language-action reasoning.
+\href{https://blogs.nvidia.com/blog/national-robotics-week-2026/}{NVIDIA Blog, Apr 2026}
+
+The full-stack release includes: \textbf{Cosmos world models} for generating synthetic training data at scale; the open-source physics engine \textbf{Newton 1.0} for accurate contact dynamics; \textbf{Isaac Sim 6.0} for digital twin creation; and \textbf{Isaac Lab 3.0} for reinforcement learning. \textbf{PeritasAI} is deploying this stack in real operating rooms at Advent Health Hospitals, developing multi-agent intelligence for surgical situational awareness, sterile coordination, and instrument management. Separately, \textbf{Aigen's Element} agricultural rover --- built on GR00T and Cosmos --- is autonomously weeding crop fields using regenerative farming practices, with training data generated synthetically to cover diverse crop types and regional conditions.
+\href{https://blogs.nvidia.com/blog/national-robotics-week-2026/}{NVIDIA Blog, Apr 2026}
+}
+\begin{databox}[title={\faRobot\quad NVIDIA Physical AI Full Stack}]
+  \begin{center}
+  \begin{tabular}{l r}
+    \toprule
+    \small\textbf{Component} & \small\textbf{Function} \\
+    \midrule
+    \small Isaac GR00T     & \small Language-to-action reasoning \\
+    \small Cosmos Models   & \small Synthetic training data at scale \\
+    \small Newton 1.0      & \small Physics engine (open source) \\
+    \small Isaac Sim 6.0   & \small Real-world scenario modelling \\
+    \small Isaac Lab 3.0   & \small Reinforcement learning environment \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{databox}
+
+
+% ── Microsoft ──────────────────────────────────────────────────
+\subsection{Microsoft Previews Three MAI Models}
+
+\sectiontag{Big Tech AI}\quad\newtag
+
+\medskip
+{\small
+Microsoft announced public previews of three models in Foundry: \textbf{MAI-Transcribe-1} for speech recognition, \textbf{MAI-Voice-1} for speech generation, and \textbf{MAI-Image-2} for image generation. The announcement describes their initial availability and intended uses.
+\href{https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/introducing-mai-transcribe-1-mai-voice-1-and-mai-image-2-in-microsoft-foundry/4507787}{Microsoft Foundry Blog, Apr 2026}
+}
+
+\ruled
+
+% ── Meta Muse Spark ────────────────────────────────────────────
+\subsection{Meta Introduces Muse Spark}
+
+\sectiontag{Social AI}\quad\newtag
+
+\medskip
+{\small
+Meta announced \textbf{Muse Spark} on April 8, 2026, describing it as the first model in its Muse series, developed by Meta Superintelligence Labs. Meta said the model powers the Meta AI app and website and would be offered in private API preview to selected partners.
+\href{https://about.fb.com/news/2026/04/introducing-muse-spark-meta-superintelligence-labs/}{Meta, Apr 2026}
+}
+
+\ruled
+
+\begin{center}
+  {\color{navydeep}\fontsize{11}{13}\selectfont\bfseries
+    The Three Strategic Lanes of AI in May 2026}
+\end{center}
+
+\begin{center}
+\begin{tabular}{>{\centering}p{2.8cm}
+                >{\centering}p{2.8cm}
+                p{2.8cm}}
+  \colorbox{cobalt}{\parbox{2.6cm}{%
+    \centering\vspace{4pt}
+    \small\bfseries\color{white}EXECUTION\\
+    \vspace{2pt}\scriptsize\color{white!80}GPT-5.5 / Closed
+    \vspace{4pt}}} &
+  \colorbox{emerald}{\parbox{2.6cm}{%
+    \centering\vspace{4pt}
+    \small\bfseries\color{white}REASONING\\
+    \vspace{2pt}\scriptsize\color{white!80}Claude Opus 4.7
+    \vspace{4pt}}} &
+\colorbox{crimson}{\parbox{2.6cm}{%
+    \centering\vspace{4pt}
+    \small\bfseries\color{white}COST SCALE\\
+    \vspace{2pt}\scriptsize\color{white!80}DeepSeek V4 Open
+    \vspace{4pt}}} \\[0pt]
+\end{tabular}
+\end{center}
+
+\vspace{0.4em}
+
+\begin{insightbox}[title={\faLightbulb\quad What This Means}]
+  {\small
+  There is no single ``best'' AI model for every task. Compare models on the work you need to do, including quality, latency, total cost, and hosting requirements.
+  }
+\end{insightbox}
+
+\end{multicols}
+\clearpage
+% ═══════════════════════════════════════════════════════════════
+%  PAGE 6 — RESEARCH BREAKTHROUGHS
+% ═══════════════════════════════════════════════════════════════
+\section{Research Breakthroughs}
+
+\begin{multicols}{2}
+
+% ── Neuro-Symbolic AI ─────────────────────────────────────────────
+\subsection{Neuro-Symbolic AI in a Robotics Study}
+
+\sectiontag{Efficient AI}\quad\hottag
+
+\medskip
+{\small
+Tufts University researchers described a \textbf{proof-of-concept neuro-symbolic system} for robotic tasks in a March 2026 report. The work was scheduled for presentation at the International Conference on Robotics and Automation in June; it was not yet a peer-reviewed conference paper when this issue was drafted.
+\href{https://now.tufts.edu/2026/03/17/new-ai-models-could-slash-energy-use-while-dramatically-improving-performance}{Tufts Now, Mar 2026}
+
+In the reported Tower of Hanoi tests, the system reached a \textbf{95\% success rate}, compared with 34\% for the baseline. It trained in \textbf{34 minutes} rather than more than a day and a half; reported training energy was 1\% of the baseline and task-execution energy was 5\%. These results apply to the tested robotic tasks, not to AI systems in general.
+\href{https://hrilab.tufts.edu/publications/dugganetal26icra/}{Tufts Human-Robot Interaction Lab, 2026}
+
+\textbf{Why it may matter for Pakistan:} If similar results hold on other tasks, lower training and execution energy could help labs working with limited compute budgets. More independent tests are needed before applying the result to other systems.
+}
+
+\begin{alertbox}[title={\faHeartbeat\quad Breakthrough Metrics}]
+  \begin{center}
+  \begin{tabular}{l c}
+    \toprule
+    \small\textbf{Factor} & \small\textbf{Result} \\
+    \midrule
+    \small Training energy   & \small \textbf{1\% of baseline} \\
+    \small Task success rate & \small \textbf{95\% vs 34\% baseline} \\
+    \small Task energy       & \small \textbf{5\% of baseline} \\
+    \small Training time     & \small \textbf{34 min vs >1.5 days} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{alertbox}
+
+\begin{pullquote}
+  {\large\itshape\color{white}
+  ``A result from one robotics study is promising. It does not show that
+  every AI system can use 100 times less energy.''\\[4pt]
+  {\footnotesize\color{electric}--- Editorial Board, MI May 2026}}
+\end{pullquote}
+
+\ruled
+
+% ── Quantum ────────────────────────────────────────────────────────
+\subsection{Giant Superatoms: A New Quantum-Control Approach}
+
+\sectiontag{Quantum AI}
+
+\medskip
+{\small
+Researchers at \textbf{Chalmers University of Technology} developed a theoretical model for controlling the directional transfer of an entangled quantum state between distant ``giant superatoms.'' The work is about quantum information transfer; it does not demonstrate a new AI training system.
+\href{https://www.chalmers.se/en/current/news/mc2-giant-superatoms-unlock-a-new-toolbox-for-quantum-computers/}{Chalmers University of Technology, Feb 2026}
+
+The proposal is theoretical, so its practical performance remains to be tested. It is a quantum-computing result rather than a demonstrated application for AI model training.
+}
+
+% ── AI-Assisted Surgery ────────────────────────────────────────────
+\subsection{Surgical Robotics: An Early Development Update}
+
+\sectiontag{Surgical Robotics}\quad\newtag
+
+\medskip
+{\small
+NVIDIA describes PeritasAI and Lightwheel as developing physical-AI systems with Advent Health Hospitals for surgical environments. The project explores situational awareness, sterile coordination, and management of instruments and implants.
+\href{https://blogs.nvidia.com/blog/national-robotics-week-2026/}{NVIDIA Blog, Apr 2026}
+}
+
+\begin{databox}[title={\faMicroscope\quad What the Source Reports}]
+  {\small
+  \textbf{Organizations:} PeritasAI, Lightwheel, NVIDIA, and Advent Health Hospitals\\
+  \textbf{Stage:} Development work described by NVIDIA\\
+  \textbf{Focus:} Situational awareness, sterile coordination, and instrument workflows\\
+  \textbf{Evidence limit:} This report does not provide clinical trial results or patient outcomes.}
+\end{databox}
+
+{\small
+This is a company development update, not a peer-reviewed clinical study. It does not establish that the system reduces operating time, complications, or recovery time.
+}
+
+\begin{pullquote}
+  {\large\itshape\color{white}
+  ``A development announcement is not clinical evidence. Patient outcomes
+  need to be measured in well-designed studies.''\\[4pt]
+  {\footnotesize\color{electric}--- Editorial Board, MI May 2026}}
+\end{pullquote}
+
+\ruled
+
+\end{multicols}
+
+\clearpage
+
+% ═══════════════════════════════════════════════════════════════
+%  PAGE 7 — ENERGY, AGRICULTURE & INDUSTRY
+% ═══════════════════════════════════════════════════════════════
+\section{Energy, Agriculture \& Industry}
+
+\begin{multicols}{2}
+
+% ── Physical AI Agriculture ────────────────────────────────────────
+\subsection{Physical AI in Agriculture: Autonomous Regenerative Farming}
+
+\sectiontag{AgriTech AI}\quad\newtag
+
+\medskip
+{\small
+\textbf{Aigen's Element} rover --- showcased at NVIDIA's National Robotics Week 2026 --- represents the most production-ready deployment of physical AI in agriculture to date. The autonomous weeding rover uses \textbf{NVIDIA Isaac GR00T} for environment perception and natural language task instruction, combined with the \textbf{Cosmos world model} to generate synthetic training data across diverse crop types and soil conditions.
+\href{https://blogs.nvidia.com/blog/national-robotics-week-2026/}{NVIDIA Blog, Apr 2026}
+
+The system enables farmers to grow crops using regenerative practices that reduce chemical inputs and improve soil health, operating continuously across field environments without human supervision. Critically for Pakistan: the rover's training on \textbf{synthetic Cosmos-generated data} rather than expensive real-world collection lowers the adaptation barrier for local crop varieties. For PARC, agricultural AI researchers, this is an open-source deployment template built on publicly available NVIDIA platforms --- a viable starting point for a Pakistan-specific agricultural AI research programme across Punjab and Sindh's 22 million cultivated hectares.
+\href{https://blogs.nvidia.com/blog/national-robotics-week-2026/}{NVIDIA Blog, Apr 2026}
+}
+
+\begin{databox}[title={\faSeedling\quad Pakistan Agricultural AI Opportunity}]
+  {\small
+  \textbf{22 million hectares} of cultivated land across Punjab, Sindh, and Balochistan. Physical AI targeting pesticide use, irrigation timing, and routine inspection automation could address three persistent challenges: input cost inflation, water scarcity, and post-harvest loss --- without requiring rural broadband infrastructure.}
+\end{databox}
+
+
+% ── AI Energy Crisis ───────────────────────────────────────────────
+\subsection{The AI Power Crunch: A Structural Policy Variable}
+
+\sectiontag{Energy Policy}\quad\hottag
+
+\medskip
+{\small
+Stanford HAI's 2026 AI Index estimates that global AI data-centre power capacity reached about \textbf{29.6~GW by Q4 2025}. This is a capacity estimate, not a measure of annual electricity consumption.
+\href{https://hai.stanford.edu/assets/files/ai_index_report_2026_chapter_1_research_development.pdf}{Stanford HAI AI Index, 2026}
+
+Energy efficiency matters when planning AI infrastructure. The Tufts result discussed in this issue is specific to a robotic proof-of-concept; it does not establish expected savings for data centres or grid systems. That application would need its own measurements.
+}
+
+\begin{statbox}[title={\faBolt\quad AI Energy Demand --- Global Context}]
+  \begin{center}
+  \begin{tabular}{l r}
+    \toprule
+    \small\textbf{Metric} & \small\textbf{Value} \\
+    \midrule
+    \small Global AI data-centre capacity & \small \textbf{29.6 GW, Q4 2025} \\
+    \small Tufts training energy          & \small \textbf{1\% of baseline} \\
+    \small Tufts task-execution energy    & \small \textbf{5\% of baseline} \\
+    \small Tufts task success             & \small \textbf{95\% vs 34\%} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{statbox}
+
+
+% ── Autonomous Factory ──────────────────────────────────────────────
+\subsection{Agentic AI in Manufacturing: The Autonomous Factory}
+
+\sectiontag{Industrial AI}
+
+\medskip
+{\small
+The convergence of LLM reasoning, physical robotics, and real-time sensor data integration is enabling a new category of \textbf{autonomous factory management}: AI agents that monitor production lines, adjust machine parameters, schedule preventive maintenance, and coordinate multi-robot task allocation without human-in-the-loop approval for routine operations.
+
+The architecture enabling this is NVIDIA's full-stack physical AI platform: \textbf{Isaac Sim 6.0} for digital twin creation and scenario testing before hardware deployment; \textbf{Newton 1.0} physics engine for accurate contact dynamics; and \textbf{GR00T} for natural language task instruction.
+\href{https://blogs.nvidia.com/blog/national-robotics-week-2026/}{NVIDIA Blog, Apr 2026}
+}
+
+\begin{insightbox}[title={\faCar\quad Pakistan Manufacturing Sector}]
+  {\small Indus Motor Company, Honda Atlas, and Millat Tractors have begun preliminary evaluation of AI quality control systems. The shift from sensor-based detection to agentic manufacturing management represents a 2--3 year adoption horizon.}
+\end{insightbox}
+
+\ruled
+
+% ── UC San Diego Chip ──────────────────────────────────────────────
+\subsection{UC San Diego Tests a Piezoelectric Power Converter}
+
+\sectiontag{Hardware AI}\quad\newtag
+
+\medskip
+{\small
+A UC San Diego team reported a prototype DC-DC converter using a piezoelectric resonator. In lab tests, it converted 48 volts to 4.8 volts with peak efficiency of 96.2\% and delivered about four times the output current of earlier piezoelectric designs. The technology is still at the prototype stage.
+\href{https://today.ucsd.edu/story/new-chip-design-could-boost-efficiency-of-power-management-in-data-centers}{UC San Diego Today, Apr 2026}
+
+The result concerns power conversion, not total data-centre energy use. Further development and testing are needed before estimating its effect on operating facilities.
+}
+
+\end{multicols}
+
+\clearpage
+
+% ═══════════════════════════════════════════════════════════════
+%  PAGE 8 — CONCLUSION + ETHICS + CLOSING
+% ═══════════════════════════════════════════════════════════════
+\section{Conclusion: Navigating the Intelligent Horizon}
+
+\begin{multicols}{2}
+
+% ── Global + Pakistan ─────────────────────────
+\subsection{The State of AI: Global vs Pakistan}
+
+{\small
+Stanford HAI's 2026 AI Index estimates that global AI data-centre power capacity reached about 29.6 GW by Q4 2025. Capacity estimates help describe infrastructure growth, but they do not tell us how much electricity AI systems use over a year.
+\href{https://hai.stanford.edu/assets/files/ai_index_report_2026_chapter_1_research_development.pdf}{Stanford HAI AI Index, 2026}
+
+For Pakistan, national programmes such as AI Seekho and the Islamabad AI Declaration set priorities for skills and governance. How these plans affect students and local research will depend on implementation and sustained access to tools and infrastructure.
+\href{https://www.moitt.gov.pk/NewsDetail/NjRhZWNhZGQtZGRkNC00MmJiLTk5YjctNmU0MTA0MjZhYTFi}{Ministry of IT & Telecom, Apr 2026};
+\href{https://www.pda.gov.pk/press-details.php?id=islamabad-ai-declaration}{Pakistan Digital Authority, Feb 2026}
+}
+
+\begin{statbox}[title={\faChartBar\quad 7 Macro-Trends This Fortnight}]
+  {\small
+  \begin{enumerate}[itemsep=2pt, leftmargin=*]
+    \item \textbf{GPT-5.5} --- Execution-heavy agentic leader at \$5/M
+    \item \textbf{Claude Opus 4.7} --- Reasoning and coding flagship
+    \item \textbf{DeepSeek V4} --- Open weights and 1M-token context
+    \item \textbf{Neuro-Symbolic AI} --- Lower energy in a robotics study
+    \item \textbf{Physical AI} --- GR00T + Isaac Sim in production robotics
+    \item \textbf{AI Seekho 2026} --- Pakistan's largest developer upskilling
+    \item \textbf{AI \& Cognition} --- Peer review flags student dependency risk
+  \end{enumerate}
+  }
+\end{statbox}
+
+\ruled
+
+% ── Ethics ────────────────────────────────────
+\subsection{Three Ethical Imperatives}
+
+\begin{alertbox}[title={\faBalanceScale\quad Non-Negotiable Principles}]
+  {\small
+  \textbf{1. Environmental Accountability}\\
+  AI systems use energy during training and operation. Projects should measure their own energy use against a clear baseline before making claims about efficiency or expanding a deployment.\\[6.5pt]
+
+  \textbf{2. Cognitive Dignity in Education}\\
+  A small MIT Media Lab preprint on essay writing raises questions about task design and independent reflection. It does not prove lasting cognitive harm. Courses should evaluate learning outcomes directly.\\[7.5pt]
+
+  \textbf{3. Open-Weight Sovereignty}\\
+  Open-weight models can give teams more deployment choices, but open weights alone do not provide data sovereignty. Check the model license, hardware needs, operating cost, and local policies before selecting a model.
+  }
+\end{alertbox}
+
+
+% ── Students + Researchers ────────────────────
+\subsection{A Direct Call to Students}
+
+{\small
+Students and researchers across AI institutions are not observers of the AI revolution --- they are its imminent participants and potential architects. The research problems identified this fortnight are not abstract:
+}
+
+\begin{insightbox}[title={\faGraduationCap\quad Actionable Research Threads}]
+  \begin{itemize}[itemsep=3pt, leftmargin=*,
+      label={\color{cobalt}\ding{228}}]
+    \item {\small Build and evaluate a small app with AI Seekho tools}
+    \item {\small Implement neuro-symbolic hybrid for Urdu low-resource NLP}
+    \item {\small Compare local model hosting with an API on a defined task}
+    \item {\small Measure AI dependency vs AI literacy in HEC programme cohorts}
+    \item {\small Study how physical AI systems could support local agriculture}
+  \end{itemize}
+\end{insightbox}
+
+{\small
+The transition from student to researcher is not a discrete event.
+\textbf{The problems are live. The tools are open. The programmes are funded.}
+}
+
+\begin{pullquote}
+  {\small\itshape\color{white}
+  ``The moment is now.''}\\[4pt]
+  {\footnotesize\color{electric}--- MI Editorial Board, May 2026}
+\end{pullquote}
+
+\ruled
+
+\subsection*{Acknowledgements}
+
+{\small
+The editorial board thanks the HOD, AI Department, NFC IET Multan, for the institutional vision enabling this publication; faculty advisors and peer reviewers; the research teams at Tufts University, NVIDIA, Chalmers University, Stanford HAI, OpenAI, Anthropic, and DeepSeek whose publicly reported work informs this edition; and Pakistan's broader AI community --- researchers, developers, and policymakers --- collectively building the ecosystem this magazine exists to serve.
+}
+
+\end{multicols}
+\ruled
+
+\begin{center}
+  {\small\itshape\color{midgray}
+    In 1950, Alan Turing asked: \textit{Can machines think?}\\
+    The more urgent question in 2026 is:\\[4pt]
+  }
+  {\large\bfseries\color{navydeep}
+    ``How does humanity choose to govern what they think,\\
+    whom they serve, and what they are permitted to decide?''
+  }\\[8pt]
+  {\small\itshape\color{midgray}
+    That governance question is not purely technical.
+    It is philosophical, legal, social, and deeply political.\\
+    It falls to institutions like ours to cultivate the interdisciplinary
+    wisdom to answer it well.
+  }
+\end{center}
+
+\vspace{0.4em}
+{\color{electric}\rule{\linewidth}{1.5pt}}
+\vspace{0.4em}
+
+\begin{center}
+  {\small\itshape Machine Intelligence}\quad
+  {\small\color{cobalt}\textbullet}\quad
+  {\small\itshape May 2026 Edition}\\[4pt]
+  {\small\itshape NFC IET Multan\ ---\ AI Department}\\[6pt]
+  \parbox{0.85\linewidth}{\centering
+    \scriptsize\color{midgray}
+    All articles are for educational and research purposes.
+    Images are placeholders --- replace with originals prior to print.
+    References link to publicly available sources.
+  }
+\end{center}
+
+{\color{electric}\rule{\linewidth}{0.4pt}}
+
+\clearpage
+\thispagestyle{empty}
+\newgeometry{top=0cm, bottom=0cm, left=0cm, right=0cm}
+
+\begin{tikzpicture}[remember picture, overlay]
+  \shade[top color=covergrad1, bottom color=covergrad2]
+    (current page.south west) rectangle (current page.north east);
+  \fill[electric]
+    (current page.south west) rectangle
+    ([yshift=2.5cm]current page.south east);
+  \fill[cobalt!80]
+    (current page.north west) rectangle
+    ([yshift=-3.0cm]current page.north east);
+  \fill[crimson]
+    ([xshift=1.4cm]current page.south west) rectangle
+    ([xshift=1.78cm]current page.north west);
+  \draw[electric!40, line width=1pt, rounded corners=2pt]
+    ([xshift=2cm, yshift=2.6cm]current page.south west)
+    rectangle
+    ([xshift=-1.5cm, yshift=-3.1cm]current page.north east);
+\end{tikzpicture}
+
+\vspace*{\fill}
+
+\begin{center}
+  {\fontsize{46}{50}\selectfont\bfseries\color{white}
+    Machine\\[0.3em]
+    {\color{electric}Intelligence}}\\[0.6em]
+  {\color{electric}\rule{0.45\linewidth}{1.8pt}}\\[0.6em]
+  {\large\itshape\color{white!80}
+    AI Department\ ---\ NFC IET Multan}\\[0.3em]
+  {\small\color{white!55}
+    \textit{May 2026 Edition\ \(\cdot\)\ Issue 1}}\\[1.5em]
+  {\color{electric}\rule{0.25\linewidth}{0.6pt}}\\[1.2em]
+  {\small\color{white!70}
+    \textit{``Exploring the Future of Intelligent Systems ---
+    From Research to Reality''}}\\[2em]
+  {\footnotesize\color{midgray}
+    \textbf{\color{electric}Chief Author:}\ Dr.\ Muhammad Siddique, HOD\\[4pt]
+    \textbf{\color{electric}Editors:}\ Muawiya Amir\ \textbar\
+    Faizan Ishfaq\ \textbar\ Shazada M.\ Umar}
+\end{center}
+
+\vspace*{\fill}
+\restoregeometry
+\end{document}
