@@ -8,12 +8,14 @@ const publicEnvironmentSchema = z.object({
 
 const serverEnvironmentSchema = publicEnvironmentSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  CRON_SECRET: z.string().min(32),
   GEMINI_API_KEY: z.string().optional(),
   WRITER_MODEL: z.string().optional(),
   DESIGNER_MODEL: z.string().optional(),
   GITHUB_DISPATCH_TOKEN: z.string().optional(),
-  APP_URL: z.string().url().optional(),
+  APP_URL: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().url().optional(),
+  ),
 });
 
 function parseEnvironment<T extends z.ZodType>(schema: T): z.output<T> {
