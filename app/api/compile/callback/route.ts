@@ -3,7 +3,6 @@ import { recordStubRun } from "@/lib/api/record-stub-run";
 import { hasValidCronBearer } from "@/lib/security/cron-auth";
 
 export const runtime = "nodejs";
-export const preferredRegion = "bom1";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {

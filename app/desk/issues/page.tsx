@@ -4,8 +4,6 @@ import { Section } from "@/components/ui/section";
 import { siteCopy } from "@/content/site";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export const preferredRegion = "bom1";
-
 export default async function IssuesPage() {
   const supabase = await createSupabaseServerClient();
   const { data: editions, error } = await supabase

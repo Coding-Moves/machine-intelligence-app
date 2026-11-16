@@ -5,8 +5,6 @@ import { siteCopy } from "@/content/site";
 import { requireAdmin } from "@/lib/auth/require-editor";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-export const preferredRegion = "bom1";
-
 export default async function EditorsPage() {
   const { user } = await requireAdmin();
   const admin = createSupabaseAdminClient();

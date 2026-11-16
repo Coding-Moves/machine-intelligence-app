@@ -5,8 +5,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Section } from "@/components/ui/section";
 
-export const preferredRegion = "bom1";
-
 export default function DraftPage() {
   const comingSoon = siteCopy.desk.comingSoon;
 
