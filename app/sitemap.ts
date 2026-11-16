@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
   const issues = await getIssues();
   const issueEntries = issues
-    .filter((issue) => !issue.isMock)
+    .filter((issue) => !issue.isMock && issue.date)
     .map((issue) => ({
       url: new URL("/issues/" + issue.slug, siteUrl).toString(),
       lastModified: new Date(issue.date),
