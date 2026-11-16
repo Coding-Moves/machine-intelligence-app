@@ -1,0 +1,197 @@
+export const siteCopy = {
+  cover: {
+    headline: "The changing shape of AI",
+    note: "A sample cover layout from the May 2026 design draft.",
+    label: "Sample",
+  },
+  nav: {
+    issues: "Issues",
+    about: "About",
+    process: "How it is made",
+    login: "Editor login",
+    menu: "Main navigation",
+    skip: "Skip to content",
+  },
+  home: {
+    eyebrow: "The AI department magazine",
+    title: "A clearer view of what is changing in AI.",
+    intro:
+      "Machine Intelligence follows important AI news, research, and work in Pakistan. Student editors check every story before it appears in an issue.",
+    latest: "Read the sample issue",
+    browse: "Browse issues",
+    issueLabel: "Latest issue",
+    contentsLabel: "In this issue",
+    pdf: "Download PDF",
+    sampleNote:
+      "This is a sample preview based on the May 2026 design draft. It is not a published issue.",
+    emptyIssueTitle: "The first issue is on its way.",
+    emptyIssueDescription:
+      "Published editions will appear here after the editors have reviewed them.",
+    coverageEyebrow: "A wide view, with local context",
+    coverageTitle: "Four sections. One careful read.",
+    howEyebrow: "From source to issue",
+    howTitle: "How each issue is made",
+    steps: [
+      {
+        number: "01",
+        title: "Sources are gathered",
+        text: "The newsroom collects reports from trusted newsrooms, research groups, public institutions, and AI labs.",
+      },
+      {
+        number: "02",
+        title: "Editors check each story",
+        text: "Editors review the source links, facts, and summaries. They decide what belongs in the magazine.",
+      },
+      {
+        number: "03",
+        title: "The issue is reviewed",
+        text: "Software helps prepare the draft. Student editors and the Head of Department review the issue before publication.",
+      },
+    ],
+    closeEyebrow: "For the next generation of builders",
+    closeTitle:
+      "Written for students who want to understand the work behind the headlines.",
+    closeLink: "About the magazine",
+  },
+  issues: {
+    eyebrow: "The archive",
+    title: "Issues",
+    description:
+      "Read published editions of Machine Intelligence. A sample preview is shown while the first issue is being prepared.",
+    sample: "Sample preview",
+    emptyTitle: "No published issues yet.",
+    emptyDescription:
+      "The archive will grow when the editorial team publishes its first edition.",
+    open: "Open issue",
+  },
+  about: {
+    eyebrow: "About the magazine",
+    title: "A student magazine for understanding artificial intelligence.",
+    intro:
+      "Machine Intelligence is the magazine of the Department of Artificial Intelligence at NFC IET Multan. It brings together useful AI reporting, research, and local developments in one reviewed edition.",
+    purposeTitle: "Why we publish it",
+    purpose:
+      "AI news moves quickly and claims can be difficult to compare. The magazine gives students a place to read source-linked summaries and see what is known, what is uncertain, and why a story matters.",
+    supervisionTitle: "Academic supervision",
+    editorsTitle: "Editorial team",
+    correctionTitle: "Suggest a correction",
+    correction:
+      "If you find an error, share the story and a link to the original source so the editors can check it.",
+    correctionLink: "Open a GitHub issue",
+    contributionTitle: "Who can contribute",
+    contribution:
+      "Contributions are for current NFC-IET students. Read the contribution note before sending work.",
+    contributionLink: "Read the contribution note",
+  },
+  process: {
+    eyebrow: "How it is made",
+    title: "A clear path from a source link to a reviewed edition.",
+    intro:
+      "The app helps the student editors collect sources, prepare a draft, and organize an issue. It does not make editorial decisions on its own.",
+    steps: [
+      {
+        number: "01",
+        title: "Collect trusted reporting",
+        text: "The newsroom checks feeds and pages from approved newsrooms, research groups, public institutions, and AI labs. Each story links back to its source.",
+      },
+      {
+        number: "02",
+        title: "Check the details",
+        text: "Editors compare names, dates, and numbers with the original reporting. Stories with unclear or unsupported claims can be held or rejected.",
+      },
+      {
+        number: "03",
+        title: "Build and review the issue",
+        text: "Software helps arrange approved stories into a draft. Student editors and the Head of Department review the issue before anything is published.",
+      },
+    ],
+    ruleTitle: "The source rule",
+    ruleText:
+      "A summary should not add facts that are missing from its linked sources. If the sources do not support a claim, the editors should leave it out or explain the uncertainty.",
+  },
+  privacy: {
+    eyebrow: "Privacy",
+    title: "A small, practical privacy policy.",
+    intro:
+      "This site is for reading the magazine and, for approved editors, preparing issues.",
+    trackingTitle: "Analytics and tracking",
+    trackingText:
+      "The site does not use advertising trackers or analytics cookies.",
+    editorTitle: "Editor accounts",
+    editorText:
+      "An editor's email address is used to send a sign-in link and to decide whether that person is on the editor list. It is not shown on public pages.",
+    storageTitle: "Issue files",
+    storageText:
+      "Published issue files may be publicly available. Draft files are kept in private storage for editors.",
+    contactTitle: "Questions",
+    contactText:
+      "For a privacy question, contact the editorial team through the repository's issue tracker.",
+  },
+  login: {
+    eyebrow: "Editor access",
+    title: "Sign in to the newsroom.",
+    intro:
+      "Enter the email address on the editors list. We will send a sign-in link if it is approved.",
+    email: "University email",
+    submit: "Send sign-in link",
+    sending: "Sending link…",
+    sent: "Check your inbox for a sign-in link.",
+    invalidEmail: "Enter a valid email address.",
+    notEditor: "This email isn't on the editors list. Ask the admin to add you.",
+    genericError:
+      "We could not send the sign-in link. Check the address and try again.",
+    back: "Back to the magazine",
+  },
+  desk: {
+    title: "Editor desk",
+    nav: [
+      { href: "/desk", label: "Draft" },
+      { href: "/desk/stories", label: "Stories" },
+      { href: "/desk/quarantine", label: "Quarantine" },
+      { href: "/desk/sources", label: "Sources" },
+      { href: "/desk/images", label: "Images" },
+      { href: "/desk/issues", label: "Issues" },
+      { href: "/desk/editors", label: "Editors", adminOnly: true },
+    ],
+    draftTitle: "Draft issue",
+    lastUpdated: "Sample data · not connected to a live draft",
+    rebuild: "Rebuild now",
+    downloadPdf: "Download PDF",
+    downloadOverleaf: "Download for Overleaf",
+    publish: "Publish issue",
+    comingSoon: "Coming in phase 2",
+    preview: "PDF preview",
+    previewEmpty: "A preview will appear when the first draft is built.",
+    storiesTitle: "Stories",
+    quarantineTitle: "Quarantine",
+    sourcesTitle: "Sources",
+    imagesTitle: "Images",
+    issuesTitle: "Issues",
+    editorsTitle: "Editors",
+    approve: "Approve",
+    reject: "Not this one",
+    edit: "Edit",
+    restore: "Bring it back",
+    addEditor: "Add editor",
+    removeEditor: "Remove",
+    noStories: "No stories to review.",
+    noRejected: "No rejected stories.",
+    noEditors: "No editors are configured yet.",
+    upload: "Upload image",
+    imageEmpty: "Approved issue images will be listed here.",
+    issueEmpty: "No editions have been created yet.",
+    signOut: "Sign out",
+    currentUser: "Signed in as",
+    section: "Section",
+    source: "Source",
+    score: "Score",
+    reason: "Reason",
+  },
+  footer: {
+    navigation: "Footer links",
+    copyright: "Department of Artificial Intelligence, NFC IET Multan",
+    builtBy: "Built by Coding Moves",
+    github: "GitHub",
+    privacy: "Privacy",
+  },
+} as const;
