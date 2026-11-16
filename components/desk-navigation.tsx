@@ -14,7 +14,7 @@ export function DeskNavigation({
 }) {
   const pathname = usePathname();
   const links = siteCopy.desk.nav.filter(
-    (item) => !item.adminOnly || role === "admin",
+    (item) => !("adminOnly" in item) || !item.adminOnly || role === "admin",
   );
 
   return (
