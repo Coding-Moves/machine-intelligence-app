@@ -131,7 +131,7 @@ export const siteCopy = {
       "The site does not use advertising trackers or analytics cookies.",
     editorTitle: "Editor accounts",
     editorText:
-      "An editor's email address is used to send a sign-in link and to decide whether that person is on the editor list. It is not shown on public pages.",
+      "An editor's email address is used to sign in and to check whether that person is on the editor list. It is not shown on public pages.",
     storageTitle: "Issue files",
     storageText:
       "Published issue files may be publicly available. Draft files are kept in private storage for editors.",
@@ -155,18 +155,17 @@ export const siteCopy = {
     eyebrow: "Editor access",
     title: "Sign in to the newsroom.",
     intro:
-      "Enter the email address on the editors list. We will send a sign-in link if it is approved.",
+      "Sign in with the university email and password set up by the newsroom admin. Only approved editors can enter.",
     email: "University email",
     placeholder: "name@undergrad.nfciet.edu.pk",
-    submit: "Send sign-in link",
-    sending: "Sending link…",
-    sent: "Check your inbox for a sign-in link.",
+    password: "Password",
+    submit: "Sign in",
+    signingIn: "Signing in…",
     invalidEmail: "Enter a valid email address.",
     notEditor: "This email isn't on the editors list. Ask the admin to add you.",
     genericError:
-      "We could not send the sign-in link. Check the address and try again.",
+      "Email or password is incorrect, or your account is not set up. Ask the newsroom admin for help.",
     back: "Back to the magazine",
-    checkInbox: "If the address is on the editors list, a sign-in link will arrive shortly.",
   },
   desk: {
     title: "Editor desk",
@@ -199,12 +198,14 @@ export const siteCopy = {
     issuesTitle: "Issues",
     issuesIntro: "View the editions stored for the magazine.",
     editorsTitle: "Editors",
-    editorsIntro: "Only add current NFC-IET students. Their email address will be used for sign-in.",
+    editorsIntro:
+      "Only add current NFC-IET students. Each editor also needs a Supabase Auth account with a password.",
     approve: "Approve",
     reject: "Not this one",
     edit: "Edit",
     restore: "Bring it back",
     addEditor: "Add editor",
+    savingEditor: "Saving…",
     removeEditor: "Remove",
     noStories: "No stories to review.",
     noRejected: "No rejected stories.",
@@ -226,7 +227,8 @@ export const siteCopy = {
     },
     editorName: "Student name",
     editorEmail: "University email",
-    editorAddHelp: "Add a current NFC-IET student to the editor allowlist.",
+    editorAddHelp:
+      "This adds the email to the allowlist. Then create that person's Supabase Auth account and password in the Supabase Dashboard.",
     editorCreated: "Editor added.",
     editorRemoved: "Editor removed.",
     editorDuplicate: "That email is already on the editor list.",

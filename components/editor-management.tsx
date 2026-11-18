@@ -62,7 +62,7 @@ export function AddEditorForm() {
       </label>
       <div className="flex items-end">
         <Button type="submit" disabled={pending}>
-          {pending ? siteCopy.login.sending : siteCopy.desk.addEditor}
+          {pending ? siteCopy.desk.savingEditor : siteCopy.desk.addEditor}
         </Button>
       </div>
       <p className="text-xs leading-5 text-muted md:col-span-3">

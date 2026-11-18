@@ -7,7 +7,7 @@ The foundation is in place: a public magazine site, a Supabase-backed editor all
 ## Foundation status
 
 - **Public site:** home, issue archive and issue detail, About, How it is made, Privacy, sitemap, robots, Open Graph image, and a custom not-found page.
-- **Editor desk:** email magic links for emails on the editor list; Draft, Stories, Quarantine, Sources, Images, Issues, and admin-only Editors pages.
+- **Editor desk:** Supabase email-and-password sign-in for accounts on the editor list; Draft, Stories, Quarantine, Sources, Images, Issues, and admin-only Editors pages.
 - **Supabase:** editors, editions, and runs tables; row-level security; public issues and private drafts buckets; vector extension.
 - **API:** health endpoint plus authenticated ingest and compile-callback stubs. The stubs only write run records.
 - **Automation:** CI checks, a three-times-daily GitHub Actions request, and a LaTeX reference compile workflow.

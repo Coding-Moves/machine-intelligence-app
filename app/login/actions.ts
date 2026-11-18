@@ -1,56 +1,53 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { siteCopy } from "@/content/site";
-import { getPublicEnv } from "@/lib/env";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type LoginActionState = {
   message: string;
-  kind: "error" | "success" | "";
+  kind: "error" | "";
 };
 
-export async function sendMagicLink(
+export async function signInEditor(
   _previousState: LoginActionState,
   formData: FormData,
 ): Promise<LoginActionState> {
   const parsedEmail = z.string().trim().email().safeParse(formData.get("email"));
+  const parsedPassword = z.string().min(1).safeParse(formData.get("password"));
   if (!parsedEmail.success) {
     return { message: siteCopy.login.invalidEmail, kind: "error" };
   }
+  if (!parsedPassword.success) {
+    return { message: siteCopy.login.genericError, kind: "error" };
+  }
 
   const email = parsedEmail.data.toLowerCase();
-  const admin = createSupabaseAdminClient();
-  const { data: editor, error: lookupError } = await admin
+  const supabase = await createSupabaseServerClient();
+  const { data, error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password: parsedPassword.data,
+  });
+
+  if (signInError || !data.user?.email) {
+    return { message: siteCopy.login.genericError, kind: "error" };
+  }
+
+  const { data: editor, error: editorError } = await supabase
     .from("editors")
     .select("email")
     .eq("email", email)
     .maybeSingle();
 
-  if (lookupError) {
-    return { message: siteCopy.login.checkInbox, kind: "success" };
-  }
-  if (!editor) {
-    return { message: siteCopy.login.checkInbox, kind: "success" };
-  }
-
-  const { NEXT_PUBLIC_SITE_URL } = getPublicEnv();
-  const callbackUrl = new URL("/auth/callback", NEXT_PUBLIC_SITE_URL);
-  callbackUrl.searchParams.set("next", "/desk");
-
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: callbackUrl.toString(),
-      shouldCreateUser: true,
-    },
-  });
-
-  if (error) {
-    return { message: siteCopy.login.checkInbox, kind: "success" };
+  if (
+    editorError ||
+    !editor ||
+    data.user.email.toLowerCase() !== email
+  ) {
+    await supabase.auth.signOut();
+    return { message: siteCopy.login.genericError, kind: "error" };
   }
 
-  return { message: siteCopy.login.checkInbox, kind: "success" };
+  redirect("/desk");
 }
