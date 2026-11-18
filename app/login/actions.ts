@@ -30,21 +30,23 @@ export async function signInEditor(
     password: parsedPassword.data,
   });
 
-  if (signInError || !data.user?.email) {
+  if (signInError || !data.user) {
+    return { message: siteCopy.login.genericError, kind: "error" };
+  }
+
+  const signedInEmail = data.user.email?.toLowerCase();
+  if (!signedInEmail || signedInEmail !== email) {
+    await supabase.auth.signOut();
     return { message: siteCopy.login.genericError, kind: "error" };
   }
 
   const { data: editor, error: editorError } = await supabase
     .from("editors")
     .select("email")
-    .eq("email", email)
+    .eq("email", signedInEmail)
     .maybeSingle();
 
-  if (
-    editorError ||
-    !editor ||
-    data.user.email.toLowerCase() !== email
-  ) {
+  if (editorError || !editor) {
     await supabase.auth.signOut();
     return { message: siteCopy.login.genericError, kind: "error" };
   }
