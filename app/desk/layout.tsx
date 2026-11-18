@@ -7,6 +7,8 @@ import { requireEditor } from "@/lib/auth/require-editor";
 import { signOut } from "@/app/desk/actions";
 import { Button } from "@/components/ui/button";
 
+export const dynamic = "force-dynamic";
+
 export default async function DeskLayout({
   children,
 }: {

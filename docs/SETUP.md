@@ -83,14 +83,16 @@ This command replaces lib/supabase/types.ts with the schema generated from the l
 
 ## 3. Configure editor sign-in
 
-In Supabase Dashboard, open Authentication URL Configuration.
+In Supabase Dashboard, open Authentication → Sign In / Providers and make sure email-and-password sign-in is enabled. In Authentication settings, turn off **Allow new users to sign up**. Existing editor accounts can still sign in; admins create new accounts from the dashboard.
 
-- Set the Site URL to the production app URL once Vercel is deployed.
-- Add http://localhost:3000/** to the redirect URL allowlist.
-- Add the production app URL followed by /auth/callback.
-- Add a Vercel preview callback pattern only if editors need to sign in on preview deployments.
+For every editor, do both steps:
 
-The login action checks the submitted email against public.editors before it sends a magic link. The callback checks the editor row again after authentication. An account outside the allowlist is signed out and returned to the login page.
+1. Add their lowercase email to `public.editors` (or use the admin-only Editors page).
+2. In Authentication → Users, create a Supabase Auth user with the same email and a strong password. Mark the email confirmed if the dashboard offers that option.
+
+The email in `public.editors` is the allowlist; the Supabase Auth user and password prove who is signing in. Adding an email to the database alone does not create an Auth account. With email delivery disabled, password-reset emails will not arrive, so an admin must set a new password for an editor in Supabase Auth when needed.
+
+The app checks the password with Supabase Auth, then checks the signed-in user's email against `public.editors` under row-level security. A valid Auth account that is not on the editor list is signed out and denied access. Password sign-in does not need an email sender or redirect URL.
 
 ## 4. Fill local environment values
 
@@ -149,7 +151,7 @@ If APP_URL is empty, the scheduled ingest workflow records a notice and exits wi
 - /about — department, supervisor, editors, correction and contribution information
 - /how-its-made — editorial process and source policy
 - /privacy — privacy note
-- /login — email magic-link sign-in
+- /login — Supabase email-and-password sign-in for allowlisted editors
 - /desk — draft preview shell
 - /desk/stories — sample stories; actions are temporary browser state
 - /desk/quarantine — sample rejected stories

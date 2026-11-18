@@ -267,7 +267,8 @@ Validate it with Zod. If it's invalid, retry once, then fall back to a simple de
    Source `og:image` is suggested but marked "needs review" (copyright: it's an official publication).
 6. **Archive** — published editions.
 
-Login: Supabase magic link, only emails in the `editors` table.
+Login: Supabase email-and-password sign-in. Only Auth users whose email is in the
+`editors` table may enter; admins provision each Auth account.
 
 ---
 
@@ -357,7 +358,8 @@ Run typecheck + lint **once at the end of the phase**, then report.
 
 **Phase 4 — Dashboard**
 > Build the pages in section 10 (Draft can be a placeholder for now): Stories, Quarantine,
-> Sources, Images, login with Supabase magic link and the editors allowlist. Approve/reject/restore
+> Sources, Images, login with Supabase email and password and the editors allowlist.
+> Approve/reject/restore
 > APIs must trigger a draft rebuild (stub for now).
 
 **Phase 5 — Draft builder + compile**
