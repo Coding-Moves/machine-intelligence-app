@@ -263,6 +263,7 @@ export interface Database {
           in_this_issue: string[];
           editor_note: string | null;
           editor_note_approved: boolean;
+          draft_revision: number;
           created_at: string;
           published_at: string | null;
         };
@@ -281,6 +282,7 @@ export interface Database {
           in_this_issue?: string[];
           editor_note?: string | null;
           editor_note_approved?: boolean;
+          draft_revision?: number;
           created_at?: string;
           published_at?: string | null;
         };
@@ -299,6 +301,7 @@ export interface Database {
           in_this_issue?: string[];
           editor_note?: string | null;
           editor_note_approved?: boolean;
+          draft_revision?: number;
           created_at?: string;
           published_at?: string | null;
         };
@@ -346,6 +349,26 @@ export interface Database {
       is_editor: { Args: Record<PropertyKey, never>; Returns: boolean };
       publish_draft_edition: {
         Args: { p_edition_id: string };
+        Returns: string;
+      };
+      invalidate_draft_edition_artifacts: {
+        Args: { p_edition_id: string };
+        Returns: number;
+      };
+      save_draft_edition_template: {
+        Args: {
+          p_edition_id: string;
+          p_title: string;
+          p_template: Json;
+        };
+        Returns: string;
+      };
+      save_draft_edition_editor_note: {
+        Args: {
+          p_edition_id: string;
+          p_editor_note: string;
+          p_approved: boolean;
+        };
         Returns: string;
       };
       store_ingested_article: {

@@ -8,6 +8,7 @@ import { requireAdmin, requireEditor } from "@/lib/auth/require-editor";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
+  invalidateCurrentDraftArtifacts,
   rebuildMagazineDraft,
   refreshDraftTex,
   saveDraftEditorNote,
@@ -213,7 +214,11 @@ export async function setStoryStatus(formData: FormData) {
     );
   }
 
-  const { error } = await admin
+  if (story.status === "approved" || status.data === "approved") {
+    await invalidateCurrentDraftArtifacts();
+  }
+
+  const { data: updatedStory, error } = await admin
     .from("stories")
     .update({
       status: status.data,
@@ -222,8 +227,11 @@ export async function setStoryStatus(formData: FormData) {
         status.data === "rejected" ? rejectReason.data || null : null,
     })
     .eq("id", id.data)
-    .neq("status", "published");
-  if (error) throw new Error("Could not save the story review decision.");
+    .neq("status", "published")
+    .select("id")
+    .maybeSingle();
+  if (error || !updatedStory)
+    throw new Error("Could not save the story review decision.");
   if (story.status === "approved" || status.data === "approved") {
     await rebuildMagazineDraft();
   }
@@ -276,7 +284,9 @@ export async function saveStoryEdit(formData: FormData) {
     ],
     sourceTexts,
   );
-  const { error } = await admin
+  if (story.status === "approved") await invalidateCurrentDraftArtifacts();
+
+  const { data: updatedStory, error } = await admin
     .from("stories")
     .update({
       headline: headline.data,
@@ -289,8 +299,11 @@ export async function saveStoryEdit(formData: FormData) {
       },
     })
     .eq("id", id.data)
-    .neq("status", "published");
-  if (error) throw new Error("Could not save the story changes.");
+    .neq("status", "published")
+    .select("id")
+    .maybeSingle();
+  if (error || !updatedStory)
+    throw new Error("Could not save the story changes.");
   if (story.status === "approved") await rebuildMagazineDraft();
   revalidatePath("/desk/stories");
   revalidatePath("/desk");

@@ -65,6 +65,17 @@ test("a PDF compiled from an older magazine source cannot satisfy readiness", ()
   );
 });
 
+test("cleared draft hashes keep an old uploaded PDF from satisfying readiness", () => {
+  const readiness = evaluatePublishReadiness(
+    readyInput({ texHash: null, pdfTexHash: null }),
+  );
+
+  assert.equal(readiness.canPublish, false);
+  assert.ok(
+    readiness.blockers.some((blocker) => blocker.includes("latest draft PDF")),
+  );
+});
+
 test("a story without a completed numeric claim check cannot publish", () => {
   const story = readyInput().stories[0];
   const readiness = evaluatePublishReadiness(
