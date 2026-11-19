@@ -171,6 +171,8 @@ export const siteCopy = {
       "This email isn't on the editors list. Ask the admin to add you.",
     genericError:
       "Email or password is incorrect, or your account is not set up. Ask the newsroom admin for help.",
+    authUnavailable:
+      "Editor sign-in is not configured for this deployment. Contact the project admin.",
     back: "Back to the magazine",
   },
   desk: {

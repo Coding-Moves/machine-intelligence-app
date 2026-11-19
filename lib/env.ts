@@ -29,6 +29,10 @@ function parseEnvironment<T extends z.ZodType>(schema: T): z.output<T> {
   return result.data;
 }
 
+export function hasPublicEnvironment() {
+  return publicEnvironmentSchema.safeParse(process.env).success;
+}
+
 export function getPublicEnv() {
   return parseEnvironment(publicEnvironmentSchema);
 }
