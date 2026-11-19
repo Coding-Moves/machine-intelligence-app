@@ -2,18 +2,18 @@
 
 The newsroom behind **Machine Intelligence**, the magazine of the Department of Artificial Intelligence at NFC IET Multan.
 
-The foundation, RSS ingestion, AI story review, and first magazine-draft builder are in place. Approved stories can be arranged into a configurable issue, edited by the newsroom, and rendered as a private LaTeX source file for review.
+The newsroom collects stories from an explicit trusted-feed allowlist twice a day, asks Gemini to summarize and arrange approved AI news, and builds a complete private LaTeX/PDF draft for editors to review. An issue cannot be published until it has been open for at least 14 days, trusted-source collection succeeds, all AI and editor queues are clear, every approved story is included, the editor's note is reviewed, and the current PDF is compiled.
 
 ## Foundation status
 
 - **Public site:** home, issue archive and issue detail, About, How it is made, Privacy, sitemap, robots, Open Graph image, and a custom not-found page.
 - **Editor desk:** Supabase email-and-password sign-in for approved addresses on the editor list; Supabase-backed story review and quarantine; editable issue title, publication masthead, cover and back-cover copy, theme, section names, slot targets, supervisor, editor credits, and editor note.
 - **Supabase:** editor, edition, run, source, article, story, and image tables; row-level security; public issues and private drafts buckets; vector extension.
-- **Ingest:** authenticated RSS collection, robots-aware article text extraction, URL-hash deduplication, conservative title-based grouping, optional Gemini summaries and scoring, and a numeric claim check against stored source text.
+- **Ingest:** authenticated twice-daily RSS collection from explicitly trusted sources, robots-aware article text extraction, URL-hash deduplication, conservative title-based grouping, Gemini summaries and scoring, and a numeric claim check against stored source text.
 - **Draft builder:** Gemini arranges approved stories within their editor-assigned sections, chooses story order and presentation, and can draft an editor note using structured JSON. Editable section slot targets guide the layout; overflow stories become briefs so no approved story is dropped. The app validates the plan, renders trusted TeX with escaped story text, and stores the source file in the private `drafts` bucket.
-- **API:** health endpoint, scheduled RSS ingestion, and an authenticated compile-callback stub.
-- **Automation:** CI checks, a three-times-daily GitHub Actions request, and a LaTeX reference compile workflow.
-- **Not active yet:** embedding-based clustering, PDF compilation, and issue publication/archive workflow. The builder creates a private `.tex` file for review. A human must check the story claims and editor note before publication.
+- **Publication:** GitHub Actions compiles the current private draft PDF after each scheduled ingest attempt. Editors get a visible checklist and a disabled publish button until the 14-day and editorial checks pass. Publishing atomically freezes the issue, marks its stories used, and opens the next draft.
+- **Automation:** CI checks, twice-daily 08:00/20:00 Pakistan-time ingest, automatic draft PDF compilation, and a LaTeX reference compile workflow.
+- **Editorial control:** Gemini grounds stories in trusted source text and flags unsupported numbers. Editors still need to inspect the linked evidence and approve the stories and editor's note; AI output is not automatically published.
 
 ## Stack
 

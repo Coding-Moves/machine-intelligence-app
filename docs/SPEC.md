@@ -1,4 +1,5 @@
 # Machine Intelligence App — Build Specification
+
 ### Build spec for NFC IET Multan, AI Department magazine
 
 Give this whole file to your coding agent (Codex / Claude Code) as the main reference.
@@ -8,27 +9,27 @@ Build it phase by phase (prompts at the bottom).
 
 ## 1. What the app does (one paragraph)
 
-2–3 times a day, a scheduled job collects AI news from trusted RSS feeds, groups duplicate
-articles into one "story", asks Gemini to summarise and score each story, and rebuilds a
-**living draft magazine** (LaTeX + PDF) from the highest-scoring stories. Editors open a
-dashboard, approve or reject story cards. Rejected stories go to Quarantine and the next-best
-story takes the slot. There is always a ready draft PDF to download. When an editor clicks
-**"Publish edition"**, that edition is frozen, its stories are marked as used, and the next
-draft starts fresh with only newer news.
+Twice a day, a scheduled job collects AI news from an explicit trusted RSS allowlist, groups
+duplicate articles into one "story", asks Gemini to summarise and score each story, and builds
+a **living draft magazine** (LaTeX + PDF). Editors approve or reject AI-related stories. An
+issue cannot be published until at least 14 days have passed, all trusted sources have had a
+successful pass, all AI and editor queues are clear, every approved story is included, its
+editor note is approved, and its latest PDF is compiled. Publishing freezes the issue and
+opens the next draft.
 
 ---
 
 ## 2. Accounts and stack
 
-| Thing | Choice |
-|---|---|
-| Code | GitHub, repo under the **Coding Moves** org (personal account owns it) |
-| Hosting | Vercel (signed up with the AI publication Gmail) |
-| Database + storage + auth | Supabase (same Gmail) |
-| App | Next.js (App Router) + TypeScript + Tailwind |
-| AI | Gemini API now, behind a provider interface so it can be swapped later |
-| Scheduler | **GitHub Actions cron** (Vercel's free plan cron only runs once a day, so it can't do 2–3 runs) |
-| LaTeX compile | GitHub Actions with TeX Live (Vercel can't run LaTeX) |
+| Thing                     | Choice                                                                                          |
+| ------------------------- | ----------------------------------------------------------------------------------------------- |
+| Code                      | GitHub, repo under the **Coding Moves** org (personal account owns it)                          |
+| Hosting                   | Vercel (signed up with the AI publication Gmail)                                                |
+| Database + storage + auth | Supabase (same Gmail)                                                                           |
+| App                       | Next.js (App Router) + TypeScript + Tailwind                                                    |
+| AI                        | Gemini API now, behind a provider interface so it can be swapped later                          |
+| Scheduler                 | **GitHub Actions cron** (Vercel's free plan cron only runs once a day, so it can't do 2–3 runs) |
+| LaTeX compile             | GitHub Actions with TeX Live (Vercel can't run LaTeX)                                           |
 
 **Secrets** (never in code; Vercel env vars + GitHub Actions secrets):
 `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
@@ -41,7 +42,7 @@ scheduled jobs and is not a client-side setting. Keep all secrets out of source 
 ## 3. The flow
 
 ```
-GitHub Actions cron (e.g. 06:00, 13:00, 20:00 PKT)
+GitHub Actions cron (08:00 and 20:00 PKT)
   └─> POST https://<app>/api/cron/ingest   (header: Authorization: Bearer CRON_SECRET)
         1. Fetch RSS feeds  → new articles (skip URLs already seen)
         2. Fetch full text  → clean it (readability)
@@ -49,9 +50,9 @@ GitHub Actions cron (e.g. 06:00, 13:00, 20:00 PKT)
         4. Gemini           → summary, section, scores (only for new/updated stories)
         5. Score            → final_score for every candidate story
         6. Build draft      → fill section slots, save draft layout JSON
-        7. Trigger compile  → GitHub workflow_dispatch "compile-draft"
+        7. Compile draft   → workflow_run triggers after each scheduled ingest attempt
   └─> GitHub Action "compile-draft"
-        downloads draft .tex + images from Supabase → pdflatex/xelatex → uploads PDF to Supabase Storage
+        uses signed URLs → TeX Live → uploads PDF to private Supabase draft storage
 Dashboard always shows: latest draft PDF + story cards + quarantine
 ```
 
@@ -167,10 +168,11 @@ the coverage score goes up, and the card shows an "UPDATED" badge.
 
 ```ts
 interface LLMProvider {
-  json<T>(prompt: string, schema: ZodSchema<T>): Promise<T>;   // structured output
-  embed(text: string): Promise<number[]>;                       // for clustering
+  json<T>(prompt: string, schema: ZodSchema<T>): Promise<T>; // structured output
+  embed(text: string): Promise<number[]>; // for clustering
 }
 ```
+
 `GeminiProvider` implements it. Changing model later = one new class + one env var `LLM_PROVIDER`.
 
 **7a. Clustering:** embed `title + first 500 chars`. If cosine similarity > 0.85 with a story
@@ -178,21 +180,27 @@ from the last 5 days → same story. Otherwise create a new story. (Store embedd
 pgvector in Supabase.)
 
 **7b. Summarise + score** (one call per story). Output schema:
+
 ```json
 {
-  "headline": "...", "summary": "120-180 words, plain English",
+  "headline": "...",
+  "summary": "120-180 words, plain English",
   "section": "pakistan|global|research|industry",
-  "key_facts": [{"label": "Prize pool", "value": "Rs 2.5 million", "article_index": 0}],
-  "ai_importance": 8, "ai_pakistan_relevance": 6,
+  "key_facts": [
+    { "label": "Prize pool", "value": "Rs 2.5 million", "article_index": 0 }
+  ],
+  "ai_importance": 8,
+  "ai_pakistan_relevance": 6,
   "is_ai_related": true
 }
 ```
+
 Prompt rules: use ONLY the given article texts; no outside facts; no invented numbers;
 neutral tone; if `is_ai_related=false` the story is dropped.
 
 **7c. Number check (no AI, plain code):** every number in `summary` and `key_facts` must
-appear in at least one source article's text. If not, mark `verification.failed=true` and show
-a red warning on the card. Editors decide.
+appear in at least one trusted source article's text. If not, mark `verification.failed=true`.
+This is a numeric check, not proof of every sentence; editors still review source links.
 
 **7d. Layout** (one call per draft rebuild, see section 8).
 
@@ -204,20 +212,22 @@ name, so it's never published until an editor ticks "Editor's note reviewed".
 ## 8. Building the draft (the "living magazine")
 
 **Slots** (config file):
+
 ```
 pakistan: 3   global: 4   research: 3   industry: 4
 ```
 
 **Selection algorithm** (runs after every ingest and after every approve/reject):
-1. Eligible = stories where `status in ('candidate','approved')` AND `first_seen_at >= draft.window_start`
-   AND `is_ai_related` AND not used in a published edition.
-2. Per section: take all **approved** first (they're locked in), then fill the remaining slots
-   with the highest `final_score` candidates.
-3. Rejected stories are never used. When one is rejected, the next-best candidate fills the slot automatically.
-4. If a section has more approved stories than slots, keep them all and flag "section over limit".
+
+1. The draft builder lays out all current-cycle **approved**, AI-confirmed stories. Stories
+   awaiting Gemini or editor review remain outside the issue plan and block publication.
+2. Rejected stories are never used. An editor's decision triggers a fresh plan.
+3. If a section has more approved stories than slots, keep them all as features/briefs; never
+   omit approved coverage to fit a target.
 
 **Layout step:** send the chosen stories (headline, summary, facts, section) to Gemini and get back
 **JSON only, never LaTeX**:
+
 ```json
 {
   "sections": [
@@ -231,10 +241,12 @@ pakistan: 3   global: 4   research: 3   industry: 4
   "kpis": {"macro_trends": 7, "pakistan": 3, "global": 4, "research": 3}
 }
 ```
+
 Validate it with Zod. If it's invalid, retry once, then fall back to a simple default layout (no AI).
 
 **Rendering:** code fills the existing LaTeX design (the May 2026 file) using template partials:
 `cover.tex`, `editors_note.tex`, `section.tex`, `story.tex`, `box_*.tex`, `conclusion.tex`, `back_cover.tex`.
+
 - **Escape every text field for LaTeX** (`& % $ # _ { } ~ ^ \`), and run a test that compiles
   a story full of special characters.
 - Links: `\href{url}{Source name, Mon YYYY}`.
@@ -245,7 +257,8 @@ Validate it with Zod. If it's invalid, retry once, then fall back to a simple de
 ## 9. Editions (fresh news every time)
 
 - **Download draft:** anytime, gives the latest compiled PDF (and a .zip with .tex + images for Overleaf).
-- **Publish edition** button (needs every story approved or auto-filled + editor's note reviewed):
+- **Publish edition** button (enabled only after the 14-day minimum and every source, AI,
+  editor-review, story-coverage, trusted-evidence, editor-note, and current-PDF check passes):
   1. Freeze: edition `status='published'`, store the final .tex, PDF and layout.
   2. All its stories get `status='published'`, `edition_id=this`.
   3. Create a new draft edition with `window_start = now() - 2 days` (small overlap so late updates aren't lost).
@@ -275,10 +288,11 @@ Login: Supabase email-and-password sign-in. Only Auth users whose email is in th
 ## 11. GitHub Actions
 
 `.github/workflows/ingest.yml`
+
 ```yaml
 on:
   schedule:
-    - cron: "0 1,8,15 * * *"   # 06:00, 13:00, 20:00 PKT (UTC+5)
+    - cron: "0 3,15 * * *"   # 08:00, 20:00 PKT (UTC+5)
   workflow_dispatch:
 jobs:
   ingest:
@@ -289,6 +303,7 @@ jobs:
             -H "Authorization: Bearer $CRON_SECRET" --max-time 290
         env: { APP_URL: ${{ secrets.APP_URL }}, CRON_SECRET: ${{ secrets.CRON_SECRET }} }
 ```
+
 If ingest gets too slow for one Vercel request, split it: `/api/cron/fetch`, `/api/cron/process`
 (processes up to N stories per call), `/api/cron/build`, called one after another.
 
@@ -338,6 +353,7 @@ Working style for every phase: make the change, commit, move to the next part, c
 Run typecheck + lint **once at the end of the phase**, then report.
 
 **Phase 1 — Template**
+
 > Read `docs/SPEC.md` and `latex/reference/may-2026.tex`. Do NOT build the app yet.
 > Split the .tex into partials under /latex/templates (section 8). Keep the design exactly the same.
 > Write `lib/render` that takes a layout JSON + stories and outputs a full .tex, with a LaTeX
@@ -346,27 +362,32 @@ Run typecheck + lint **once at the end of the phase**, then report.
 > aligned with the reference and validate factual claims and citations before publication.
 
 **Phase 2 — Database + ingest**
+
 > Using the spec, create the Supabase migrations (section 4, with pgvector and RLS), the
 > seed sources (section 5), and `/api/cron/ingest` steps 1–3 only (RSS fetch, full text,
 > dedupe by URL hash, clustering). No AI summary yet; use a stub. Protect the route with CRON_SECRET.
 > Add the ingest.yml workflow. Investigate RSS feed URLs before hardcoding them; drop any that don't work and list them for me.
 
 **Phase 3 — AI + scoring**
+
 > Add the LLMProvider interface and GeminiProvider (sections 7a–7c), structured JSON with Zod,
 > the scoring in section 6 with weights in /config/magazine.ts, and the number-check in lib/verify.ts.
 > Only process stories with needs_reprocess=true, max 40 per run.
 
 **Phase 4 — Dashboard**
+
 > Build the pages in section 10 (Draft can be a placeholder for now): Stories, Quarantine,
 > Sources, Images, login with Supabase email and password and the editors allowlist.
 > Approve/reject/restore
 > APIs must trigger a draft rebuild (stub for now).
 
 **Phase 5 — Draft builder + compile**
+
 > Implement selection (section 8), the layout call with Zod validation + fallback layout,
 > rendering with Phase 1 code, upload .tex to Storage, compile.yml, the callback, and the Draft
 > page with PDF preview + download PDF + download Overleaf zip.
 
 **Phase 6 — Editions**
+
 > Implement Publish edition and Archive exactly as in section 9. Write a test: publish, run ingest
 > again, and confirm no published story appears in the new draft.
