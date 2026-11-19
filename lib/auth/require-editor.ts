@@ -1,9 +1,14 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import { hasPublicEnvironment } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function requireEditor() {
+  if (!hasPublicEnvironment()) {
+    redirect("/login?error=auth-unavailable");
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },

@@ -1,30 +1,28 @@
-"use client";
-
-import { useState } from "react";
-import type { Story } from "@/lib/types";
+import { setStoryStatus } from "@/app/desk/actions";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusChip } from "@/components/ui/status-chip";
 import { siteCopy } from "@/content/site";
 
-export function QuarantineBoard({ initialStories }: { initialStories: Story[] }) {
-  const [stories, setStories] = useState(initialStories);
+export type QuarantinedStory = {
+  id: string;
+  headline: string;
+  summary: string | null;
+  rejectReason: string | null;
+};
 
-  function restore(storyId: string) {
-    setStories((current) => current.filter((story) => story.id !== storyId));
-  }
-
+export function QuarantineBoard({ stories }: { stories: QuarantinedStory[] }) {
   if (!stories.length) {
     return (
       <EmptyState
         title={siteCopy.desk.noRejected}
-        description={siteCopy.desk.localOnly}
+        description="Rejected stories from the live database will appear here."
       />
     );
   }
 
   return (
-    <div className="divide-y divide-line border-y border-line">
+    <div className="divide-line border-line divide-y border-y">
       {stories.map((story) => (
         <article
           key={story.id}
@@ -34,23 +32,32 @@ export function QuarantineBoard({ initialStories }: { initialStories: Story[] })
             <div className="mb-3">
               <StatusChip status="rejected" />
             </div>
-            <h2 className="font-serif text-2xl leading-tight">{story.headline}</h2>
-            <p className="mt-3 text-sm leading-6 text-muted">{story.summary}</p>
-            <p className="mt-3 text-sm text-[#8e443c]">
-              <span className="font-medium">{siteCopy.desk.reason}:</span>{" "}
-              {story.rejectReason}
+            <h2 className="font-serif text-2xl leading-tight">
+              {story.headline}
+            </h2>
+            <p className="text-muted mt-3 text-sm leading-6">
+              {story.summary || "No summary saved."}
             </p>
+            {story.rejectReason ? (
+              <p className="mt-3 text-sm text-[#8e443c]">
+                <span className="font-medium">{siteCopy.desk.reason}:</span>{" "}
+                {story.rejectReason}
+              </p>
+            ) : null}
           </div>
-          <Button
-            className="w-fit min-h-10 px-4 text-xs"
-            variant="secondary"
-            onClick={() => restore(story.id)}
-          >
-            {siteCopy.desk.restore}
-          </Button>
+          <form action={setStoryStatus}>
+            <input type="hidden" name="storyId" value={story.id} />
+            <input type="hidden" name="status" value="candidate" />
+            <Button
+              type="submit"
+              className="min-h-10 px-4 text-xs"
+              variant="secondary"
+            >
+              {siteCopy.desk.restore}
+            </Button>
+          </form>
         </article>
       ))}
-      <p className="py-4 text-xs text-muted">{siteCopy.desk.localOnly}</p>
     </div>
   );
 }

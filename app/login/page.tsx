@@ -5,6 +5,7 @@ import { PageHeading } from "@/components/page-heading";
 import { Section } from "@/components/ui/section";
 import { siteCopy } from "@/content/site";
 import { LoginForm } from "@/app/login/login-form";
+import { hasPublicEnvironment } from "@/lib/env";
 
 type LoginPageProps = {
   searchParams: Promise<{ error?: string }>;
@@ -18,14 +19,16 @@ export const metadata: Metadata = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { error } = await searchParams;
-  const errorMessage =
-    error === "not-editor"
+  const authAvailable = hasPublicEnvironment();
+  const errorMessage = authAvailable
+    ? error === "not-editor"
       ? siteCopy.login.notEditor
       : error === "admin-required"
         ? siteCopy.desk.adminRequired
         : error === "sign-in-failed"
           ? siteCopy.login.genericError
-          : null;
+          : null
+    : null;
 
   return (
     <SiteShell>
@@ -40,9 +43,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             {errorMessage}
           </p>
         ) : null}
-        <LoginForm />
+        {authAvailable ? (
+          <LoginForm />
+        ) : (
+          <p className="border-line text-muted mt-8 max-w-md rounded border bg-white p-4 text-sm leading-6">
+            {siteCopy.login.authUnavailable}
+          </p>
+        )}
         <Link
-          className="mt-8 inline-flex rounded-sm text-sm text-muted underline underline-offset-4 hover:text-ink"
+          className="text-muted hover:text-ink mt-8 inline-flex rounded-sm text-sm underline underline-offset-4"
           href="/"
         >
           {siteCopy.login.back}

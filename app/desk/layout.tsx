@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { DeskNavigation } from "@/components/desk-navigation";
 import { magazine } from "@/config/magazine";
@@ -17,33 +18,50 @@ export default async function DeskLayout({
   const { user, editor } = await requireEditor();
 
   return (
-    <div className="min-h-screen bg-paper md:grid md:grid-cols-[220px_minmax(0,1fr)]">
-      <aside className="hidden border-r border-line px-4 py-6 md:flex md:flex-col">
-        <Link href="/" className="mb-8 block">
-          <span className="font-serif text-lg tracking-tight text-ink">
-            {magazine.name}
-          </span>
-          <span className="mt-1 block text-xs text-muted">
-            {siteCopy.desk.title}
+    <div className="bg-paper min-h-screen md:grid md:grid-cols-[220px_minmax(0,1fr)]">
+      <aside className="border-line hidden border-r px-4 py-6 md:flex md:flex-col">
+        <Link
+          href="/"
+          aria-label={magazine.name + ", home"}
+          className="mb-8 flex items-center gap-2"
+        >
+          <Image
+            alt=""
+            className="size-8 shrink-0"
+            height={40}
+            src="/brand/icon-192.png"
+            width={40}
+          />
+          <span>
+            <span className="text-ink block font-serif text-base tracking-tight">
+              {magazine.name}
+            </span>
+            <span className="text-muted mt-1 block text-xs">
+              {siteCopy.desk.title}
+            </span>
           </span>
         </Link>
         <DeskNavigation role={editor.role} />
-        <p className="mt-auto border-t border-line pt-4 text-xs leading-5 text-muted">
+        <p className="border-line text-muted mt-auto border-t pt-4 text-xs leading-5">
           {magazine.universityShort}
         </p>
       </aside>
       <div className="min-w-0">
-        <header className="flex min-h-16 items-center justify-between gap-4 border-b border-line px-5 py-3 sm:px-8">
+        <header className="border-line flex min-h-16 items-center justify-between gap-4 border-b px-5 py-3 sm:px-8">
           <div>
-            <p className="font-serif text-xl tracking-tight text-ink">
+            <p className="text-ink font-serif text-xl tracking-tight">
               {siteCopy.desk.title}
             </p>
-            <p className="mt-1 text-xs text-muted">
+            <p className="text-muted mt-1 text-xs">
               {siteCopy.desk.currentUser}: {editor.name} · {user.email}
             </p>
           </div>
           <form action={signOut}>
-            <Button type="submit" variant="secondary" className="min-h-10 px-4 text-xs">
+            <Button
+              type="submit"
+              variant="secondary"
+              className="min-h-10 px-4 text-xs"
+            >
               {siteCopy.desk.signOut}
             </Button>
           </form>

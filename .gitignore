@@ -31,3 +31,4 @@ pnpm-debug.log*
 /coverage/
 *.tsbuildinfo
 next-env.d.ts
+/latex/generated-render-smoke.tex

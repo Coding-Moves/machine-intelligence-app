@@ -16,22 +16,46 @@ export default function PrivacyPage() {
         title={siteCopy.privacy.title}
         description={siteCopy.privacy.intro}
       />
-      <div className="mt-12 max-w-3xl divide-y divide-line border-y border-line">
+      <div className="divide-line border-line mt-12 max-w-3xl divide-y border-y">
         <section className="py-6">
-          <h2 className="text-2xl tracking-tight">{siteCopy.privacy.trackingTitle}</h2>
-          <p className="mt-3 text-sm leading-6 text-muted">{siteCopy.privacy.trackingText}</p>
+          <h2 className="text-2xl tracking-tight">
+            {siteCopy.privacy.trackingTitle}
+          </h2>
+          <p className="text-muted mt-3 text-sm leading-6">
+            {siteCopy.privacy.trackingText}
+          </p>
         </section>
         <section className="py-6">
-          <h2 className="text-2xl tracking-tight">{siteCopy.privacy.editorTitle}</h2>
-          <p className="mt-3 text-sm leading-6 text-muted">{siteCopy.privacy.editorText}</p>
+          <h2 className="text-2xl tracking-tight">
+            {siteCopy.privacy.editorTitle}
+          </h2>
+          <p className="text-muted mt-3 text-sm leading-6">
+            {siteCopy.privacy.editorText}
+          </p>
         </section>
         <section className="py-6">
-          <h2 className="text-2xl tracking-tight">{siteCopy.privacy.storageTitle}</h2>
-          <p className="mt-3 text-sm leading-6 text-muted">{siteCopy.privacy.storageText}</p>
+          <h2 className="text-2xl tracking-tight">
+            {siteCopy.privacy.storageTitle}
+          </h2>
+          <p className="text-muted mt-3 text-sm leading-6">
+            {siteCopy.privacy.storageText}
+          </p>
         </section>
         <section className="py-6">
-          <h2 className="text-2xl tracking-tight">{siteCopy.privacy.contactTitle}</h2>
-          <p className="mt-3 text-sm leading-6 text-muted">{siteCopy.privacy.contactText}</p>
+          <h2 className="text-2xl tracking-tight">
+            {siteCopy.privacy.aiTitle}
+          </h2>
+          <p className="text-muted mt-3 text-sm leading-6">
+            {siteCopy.privacy.aiText}
+          </p>
+        </section>
+        <section className="py-6">
+          <h2 className="text-2xl tracking-tight">
+            {siteCopy.privacy.contactTitle}
+          </h2>
+          <p className="text-muted mt-3 text-sm leading-6">
+            {siteCopy.privacy.contactText}
+          </p>
         </section>
       </div>
     </Section>

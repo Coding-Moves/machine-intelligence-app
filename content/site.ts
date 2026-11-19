@@ -74,7 +74,8 @@ export const siteCopy = {
     storiesHeading: "Stories and sources",
     storiesTitle: "Story source notes",
     storiesEmptyTitle: "Story links are not available yet.",
-    storiesEmpty: "Source-linked story details will be shown here when they are part of the published edition.",
+    storiesEmpty:
+      "Source-linked story details will be shown here when they are part of the published edition.",
   },
   about: {
     eyebrow: "About the magazine",
@@ -99,7 +100,7 @@ export const siteCopy = {
     eyebrow: "How it is made",
     title: "A clear path from a source link to a reviewed edition.",
     intro:
-      "The app helps the student editors collect sources, prepare a draft, and organize an issue. It does not make editorial decisions on its own.",
+      "The app helps student editors collect sources and prepare a draft. AI can suggest story summaries, scores, and issue layout, but editors make the publication decisions and check the sources.",
     steps: [
       {
         number: "01",
@@ -114,7 +115,7 @@ export const siteCopy = {
       {
         number: "03",
         title: "Build and review the issue",
-        text: "Software helps arrange approved stories into a draft. Student editors and the Head of Department review the issue before anything is published.",
+        text: "AI can suggest the order and presentation of approved stories and draft an editor's note. Editors review the layout and note, check every story, and decide what may be published.",
       },
     ],
     ruleTitle: "The source rule",
@@ -135,6 +136,9 @@ export const siteCopy = {
     storageTitle: "Issue files",
     storageText:
       "Published issue files may be publicly available. Draft files are kept in private storage for editors.",
+    aiTitle: "AI-assisted editing",
+    aiText:
+      "When enabled, source article text may be sent to Google's Gemini API to draft summaries and scores. Approved story summaries and key facts may be sent to suggest an issue layout and draft an editor's note. Editors review this work before publication. Gemini is optional; without it, the app uses a score-based layout and editors write summaries and notes themselves.",
     contactTitle: "Questions",
     contactText:
       "For a privacy question, contact the editorial team through the repository's issue tracker.",
@@ -147,7 +151,8 @@ export const siteCopy = {
   },
   seo: {
     title: "Machine Intelligence | NFC IET Multan",
-    description: "AI news and research, carefully reviewed by student editors at NFC IET Multan.",
+    description:
+      "AI news and research, carefully reviewed by student editors at NFC IET Multan.",
     ogAlt: "Machine Intelligence, the AI department magazine at NFC IET Multan",
     ogFooter: "NFC IET Multan · Built by Coding Moves",
   },
@@ -155,16 +160,19 @@ export const siteCopy = {
     eyebrow: "Editor access",
     title: "Sign in to the newsroom.",
     intro:
-      "Sign in with the university email and password set up by the newsroom admin. Only approved editors can enter.",
-    email: "University email",
-    placeholder: "name@undergrad.nfciet.edu.pk",
+      "Sign in with an email and password set up by the newsroom admin. Only email addresses on the approved editor list can enter.",
+    email: "Approved email address",
+    placeholder: "you@example.com",
     password: "Password",
     submit: "Sign in",
     signingIn: "Signing in…",
     invalidEmail: "Enter a valid email address.",
-    notEditor: "This email isn't on the editors list. Ask the admin to add you.",
+    notEditor:
+      "This email isn't on the editors list. Ask the admin to add you.",
     genericError:
       "Email or password is incorrect, or your account is not set up. Ask the newsroom admin for help.",
+    authUnavailable:
+      "Editor sign-in is not configured for this deployment. Contact the project admin.",
     back: "Back to the magazine",
   },
   desk: {
@@ -179,20 +187,23 @@ export const siteCopy = {
       { href: "/desk/editors", label: "Editors", adminOnly: true },
     ],
     draftTitle: "Draft issue",
-    lastUpdated: "Sample data · not connected to a live draft",
-    rebuild: "Rebuild now",
-    downloadPdf: "Download PDF",
-    downloadOverleaf: "Download for Overleaf",
-    publish: "Publish issue",
-    comingSoon: "Coming in phase 2",
+    lastUpdated: "Built from the latest approved stories",
+    rebuild: "Rebuild magazine",
+    downloadPdf: "PDF export is not connected yet",
+    downloadOverleaf: "Overleaf export is not connected yet",
+    publish: "Publishing is not connected yet",
+    comingSoon: "Image upload is not connected yet",
     preview: "PDF preview",
-    previewEmpty: "A preview will appear when the first draft is built.",
+    previewEmpty: "PDF compilation is not connected yet.",
     storiesTitle: "Stories",
-    storiesIntro: "Review sample stories grouped by section. Decisions and edits on this page stay in your browser.",
+    storiesIntro:
+      "Review live stories collected from the configured feeds. Approve a story only after checking its sources.",
     quarantineTitle: "Quarantine",
-    quarantineIntro: "Rejected sample stories wait here. Restore a story to return it to the review list.",
+    quarantineIntro:
+      "Rejected stories stay out of the draft. Restore one to return it to the review list.",
     sourcesTitle: "Sources",
-    sourcesIntro: "These are the planned source groups from the build specification. Feed URLs will be added in phase 2.",
+    sourcesIntro:
+      "These feeds are configured for scheduled collection. Review each publisher's source before approving a story.",
     imagesTitle: "Images",
     imagesIntro: "Manage images approved for use in a magazine issue.",
     issuesTitle: "Issues",
@@ -246,8 +257,7 @@ export const siteCopy = {
     rejectedLocally: "Moved to Quarantine in this sample session.",
     save: "Save",
     cancel: "Cancel",
-    localOnly: "Changes here are temporary and reset when you leave this page.",
-    feedPending: "Feed setup happens in phase 2.",
+    localOnly: "No draft editions are available yet.",
     sourceRegion: {
       pakistan: "Pakistan",
       global: "Global",
@@ -263,11 +273,15 @@ export const siteCopy = {
       draft: "Draft",
       published: "Published",
     },
-    imageRights: "Only upload images the magazine has permission to use. Image uploads arrive in phase 2.",
+    imageRights:
+      "Image upload controls are not connected yet. Use only artwork the magazine has permission to publish and credit.",
+    pausedSource: "Paused",
     sourcesEmpty: "No sources are listed yet.",
     activeSource: "Active",
     trustWeight: "Trust weight",
     sourceName: "Source",
+    feedColumn: "Feed",
+    feedLink: "RSS feed",
     sourceRegionLabel: "Region",
     sourceType: "Type",
   },
