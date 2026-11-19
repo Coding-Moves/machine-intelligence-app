@@ -4,9 +4,19 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { siteCopy } from "@/content/site";
-import { requireAdmin } from "@/lib/auth/require-editor";
+import { requireAdmin, requireEditor } from "@/lib/auth/require-editor";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  rebuildMagazineDraft,
+  refreshDraftTex,
+  saveDraftEditorNote,
+  saveDraftTemplate,
+} from "@/lib/magazine/build";
+import {
+  magazineTemplateSchema,
+  readMagazineTemplate,
+} from "@/lib/magazine/template";
 
 export type EditorActionState = {
   message: string;
@@ -15,6 +25,14 @@ export type EditorActionState = {
 
 const emailSchema = z.string().trim().email();
 const nameSchema = z.string().trim().min(2).max(80);
+const storyIdSchema = z.string().uuid();
+const storyStatusSchema = z.enum(["candidate", "approved", "rejected"]);
+const storySectionSchema = z.enum([
+  "pakistan",
+  "global",
+  "research",
+  "industry",
+]);
 
 async function verifyAdmin() {
   const { user, editor } = await requireAdmin();
@@ -107,4 +125,203 @@ export async function signOut() {
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+export async function setStoryStatus(formData: FormData) {
+  await requireEditor();
+  const id = storyIdSchema.safeParse(formData.get("storyId"));
+  const status = storyStatusSchema.safeParse(formData.get("status"));
+  const rejectReason = z
+    .string()
+    .trim()
+    .max(500)
+    .safeParse(formData.get("rejectReason") ?? "");
+  if (!id.success || !status.success || !rejectReason.success) {
+    throw new Error("Invalid story review update.");
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data: story, error: lookupError } = await admin
+    .from("stories")
+    .select("headline, summary, section, is_ai_related, status")
+    .eq("id", id.data)
+    .maybeSingle();
+  if (lookupError || !story) throw new Error("Could not find that story.");
+  if (
+    status.data === "approved" &&
+    (!story.headline.trim() || !story.summary?.trim() || !story.section)
+  ) {
+    throw new Error(
+      "Add a summary and choose a section before approving this story.",
+    );
+  }
+  if (status.data === "approved" && story.is_ai_related === false) {
+    throw new Error(
+      "This story is marked as not AI-related. Edit its AI relevance after checking the source before approval.",
+    );
+  }
+
+  const { error } = await admin
+    .from("stories")
+    .update({
+      status: status.data,
+      reject_reason:
+        status.data === "rejected" ? rejectReason.data || null : null,
+    })
+    .eq("id", id.data)
+    .neq("status", "published");
+  if (error) throw new Error("Could not save the story review decision.");
+  if (story.status === "approved" || status.data === "approved") {
+    await rebuildMagazineDraft();
+  }
+  revalidatePath("/desk/stories");
+  revalidatePath("/desk/quarantine");
+  revalidatePath("/desk");
+}
+
+export async function saveStoryEdit(formData: FormData) {
+  await requireEditor();
+  const id = storyIdSchema.safeParse(formData.get("storyId"));
+  const headline = z
+    .string()
+    .trim()
+    .min(8)
+    .max(300)
+    .safeParse(formData.get("headline"));
+  const summary = z
+    .string()
+    .trim()
+    .min(40)
+    .max(3000)
+    .safeParse(formData.get("summary"));
+  const section = storySectionSchema.safeParse(formData.get("section"));
+  const aiRelated = z
+    .enum(["true", "false", "unknown"])
+    .safeParse(formData.get("aiRelated"));
+  if (
+    !id.success ||
+    !headline.success ||
+    !summary.success ||
+    !section.success ||
+    !aiRelated.success
+  ) {
+    throw new Error(
+      "Enter a headline, summary, section, and AI relevance before saving.",
+    );
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data: story, error: lookupError } = await admin
+    .from("stories")
+    .select("status")
+    .eq("id", id.data)
+    .maybeSingle();
+  if (lookupError || !story) throw new Error("Could not find that story.");
+  const { error } = await admin
+    .from("stories")
+    .update({
+      headline: headline.data,
+      summary: summary.data,
+      section: section.data,
+      is_ai_related:
+        aiRelated.data === "unknown" ? null : aiRelated.data === "true",
+    })
+    .eq("id", id.data)
+    .neq("status", "published");
+  if (error) throw new Error("Could not save the story changes.");
+  if (story.status === "approved") await rebuildMagazineDraft();
+  revalidatePath("/desk/stories");
+  revalidatePath("/desk");
+}
+
+export async function saveDraftTemplateAction(formData: FormData) {
+  await requireEditor();
+  const admin = createSupabaseAdminClient();
+  const { data: edition, error } = await admin
+    .from("editions")
+    .select("id, layout")
+    .eq("status", "draft")
+    .maybeSingle();
+  if (error || !edition)
+    throw new Error("Could not find the current draft issue.");
+
+  const current = readMagazineTemplate(edition.layout);
+  const sections = current.sections.map((section) => {
+    const label = z
+      .string()
+      .trim()
+      .min(2)
+      .max(40)
+      .safeParse(formData.get(`section.${section.id}.label`));
+    const slots = z
+      .string()
+      .regex(/^(?:[0-9]|1[0-2])$/)
+      .transform(Number)
+      .safeParse(formData.get(`section.${section.id}.slots`));
+    if (!label.success || !slots.success)
+      throw new Error(
+        "Each section needs a label and a slot count from 0 to 12.",
+      );
+    return { ...section, label: label.data, slots: slots.data };
+  });
+  const editorsValue = z.string().max(1000).safeParse(formData.get("editors"));
+  const template = magazineTemplateSchema.safeParse({
+    publicationName: formData.get("publicationName"),
+    coverSubtitle: formData.get("coverSubtitle"),
+    coverTagline: formData.get("coverTagline"),
+    backCoverNote: formData.get("backCoverNote"),
+    supervisorName: formData.get("supervisorName"),
+    supervisorTitle: formData.get("supervisorTitle"),
+    editors: editorsValue.success
+      ? editorsValue.data
+          .split(/[\n,]/)
+          .map((name) => name.trim())
+          .filter(Boolean)
+      : [],
+    theme: formData.get("theme"),
+    sections,
+  });
+  const title = z
+    .string()
+    .trim()
+    .min(4)
+    .max(100)
+    .safeParse(formData.get("title"));
+  if (!template.success || !title.success) {
+    throw new Error(
+      "Check the issue title, cover details, editor list, theme, and section settings.",
+    );
+  }
+  const editionId = await saveDraftTemplate({
+    title: title.data,
+    template: template.data,
+  });
+  await refreshDraftTex(editionId);
+  revalidatePath("/desk");
+  revalidatePath("/desk/issues");
+}
+
+export async function saveDraftEditorNoteAction(formData: FormData) {
+  await requireEditor();
+  const note = z
+    .string()
+    .trim()
+    .max(1800)
+    .safeParse(formData.get("editorNote"));
+  const approved = formData.get("reviewed") === "on";
+  if (!note.success || (approved && note.data.length < 40)) {
+    throw new Error(
+      "Write at least 40 characters before marking the editor's note reviewed.",
+    );
+  }
+  const editionId = await saveDraftEditorNote({ note: note.data, approved });
+  await refreshDraftTex(editionId);
+  revalidatePath("/desk");
+}
+
+export async function rebuildDraftAction() {
+  await requireEditor();
+  await rebuildMagazineDraft();
+  revalidatePath("/desk");
+  revalidatePath("/desk/stories");
 }

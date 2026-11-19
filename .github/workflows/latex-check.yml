@@ -24,11 +24,24 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Generate magazine renderer smoke file
+        run: WRITE_LATEX_SMOKE=1 node --experimental-strip-types --test tests/magazine-render.test.mjs
       - name: Compile the May reference
         uses: xu-cheng/latex-action@v4
         with:
           texlive_version: 2026
           root_file: latex/reference/may-2026.tex
+          work_in_root_file_dir: true
+          args: -pdf -file-line-error -halt-on-error -interaction=nonstopmode
+      - name: Compile the generated magazine template with special characters
+        uses: xu-cheng/latex-action@v4
+        with:
+          texlive_version: 2026
+          root_file: latex/generated-render-smoke.tex
           work_in_root_file_dir: true
           args: -pdf -file-line-error -halt-on-error -interaction=nonstopmode
       - name: Upload PDF artifact

@@ -33,6 +33,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  outputFileTracingIncludes: {
+    "/*": ["./latex/templates/*.tex"],
+  },
   async headers() {
     return [
       {
