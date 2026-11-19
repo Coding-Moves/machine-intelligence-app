@@ -1,0 +1,182 @@
+name: Compile current magazine draft
+
+on:
+  workflow_run:
+    workflows: ["Scheduled ingest"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      edition_id:
+        description: Optional draft edition ID (leave blank for the current draft)
+        required: false
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: compile-draft-main
+  cancel-in-progress: false
+
+jobs:
+  compile:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Request temporary compile URLs
+        id: prepare
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          EDITION_ID: ${{ github.event.inputs.edition_id || '' }}
+        run: |
+          if [[ -z "$APP_URL" || -z "$CRON_SECRET" ]]; then
+            echo "::error title=Configuration::APP_URL and CRON_SECRET are required."
+            exit 1
+          fi
+          APP_URL="${APP_URL%/}"
+          payload="{}"
+          if [[ -n "$EDITION_ID" ]]; then
+            payload=$(node -e 'process.stdout.write(JSON.stringify({editionId: process.env.EDITION_ID}))')
+          fi
+          http_code=$(curl --silent --show-error \
+            --output "$RUNNER_TEMP/compile-prepare.json" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            --header "Content-Type: application/json" \
+            --data "$payload" \
+            --max-time 30 \
+            "$APP_URL/api/cron/compile/prepare")
+          if [[ ! "$http_code" =~ ^2[0-9][0-9]$ ]]; then
+            echo "::error title=Compile preparation failed::The endpoint returned HTTP $http_code."
+            cat "$RUNNER_TEMP/compile-prepare.json"
+            exit 1
+          fi
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const data = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/compile-prepare.json', 'utf8'));
+          if (!data.ok) throw new Error(data.error || 'Could not prepare the PDF compile.');
+          const outputs = fs.createWriteStream(process.env.GITHUB_OUTPUT, { flags: 'a' });
+          function setOutput(name, value) {
+            const delimiter = 'OUT_' + crypto.randomBytes(8).toString('hex');
+            outputs.write(`${name}<<${delimiter}\n${value}\n${delimiter}\n`);
+          }
+          setOutput('ready', String(data.ready));
+          if (!data.ready) {
+            console.log(`::notice title=No draft PDF::${data.reason || 'The current draft is not ready to compile.'}`);
+            outputs.end();
+            process.exit(0);
+          }
+          for (const value of [data.sourceUrl, data.pdfUploadUrl]) console.log(`::add-mask::${value}`);
+          setOutput('edition_id', data.editionId);
+          setOutput('tex_hash', data.texHash);
+          setOutput('pdf_path', data.pdfPath);
+          setOutput('source_url', data.sourceUrl);
+          setOutput('upload_url', data.pdfUploadUrl);
+          outputs.end();
+          NODE
+
+      - name: Download the current TeX source
+        if: steps.prepare.outputs.ready == 'true'
+        env:
+          SOURCE_URL: ${{ steps.prepare.outputs.source_url }}
+        run: |
+          mkdir -p magazine/build
+          curl --fail --silent --show-error "$SOURCE_URL" --output magazine/build/edition.tex
+
+      - name: Compile the magazine PDF
+        id: latex
+        if: steps.prepare.outputs.ready == 'true'
+        uses: xu-cheng/latex-action@v4
+        with:
+          texlive_version: 2026
+          root_file: magazine/build/edition.tex
+          work_in_root_file_dir: true
+          args: -pdf -file-line-error -halt-on-error -interaction=nonstopmode
+
+      - name: Upload the PDF to private draft storage
+        id: upload
+        if: steps.prepare.outputs.ready == 'true' && steps.latex.outcome == 'success'
+        env:
+          UPLOAD_URL: ${{ steps.prepare.outputs.upload_url }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs/promises');
+          (async () => {
+            const pdf = await fs.readFile('magazine/build/edition.pdf');
+            const response = await fetch(process.env.UPLOAD_URL, {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/pdf',
+                'cache-control': 'max-age=3600',
+                'x-upsert': 'true',
+              },
+              body: pdf,
+            });
+            if (!response.ok) {
+              throw new Error(`Supabase PDF upload returned HTTP ${response.status}.`);
+            }
+            console.log(`Uploaded compiled PDF (${pdf.byteLength} bytes).`);
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Record the compile result
+        if: always() && steps.prepare.outputs.ready == 'true'
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          EDITION_ID: ${{ steps.prepare.outputs.edition_id }}
+          TEX_HASH: ${{ steps.prepare.outputs.tex_hash }}
+          PDF_PATH: ${{ steps.prepare.outputs.pdf_path }}
+          COMPILE_SUCCESS: ${{ steps.upload.outcome == 'success' }}
+        run: |
+          APP_URL="${APP_URL%/}"
+          node <<'NODE'
+          (async () => {
+            const payload = {
+              editionId: process.env.EDITION_ID,
+              texHash: process.env.TEX_HASH,
+              success: process.env.COMPILE_SUCCESS === 'true',
+              pdfPath: process.env.COMPILE_SUCCESS === 'true' ? process.env.PDF_PATH : undefined,
+              error: process.env.COMPILE_SUCCESS === 'true' ? undefined : 'LaTeX compilation or PDF upload failed. See this workflow run for details.',
+            };
+            const response = await fetch(`${process.env.APP_URL.replace(/\/$/, '')}/api/compile/callback`, {
+              method: 'POST',
+              headers: {
+                authorization: `Bearer ${process.env.CRON_SECRET}`,
+                'content-type': 'application/json',
+              },
+              body: JSON.stringify(payload),
+            });
+            if (!response.ok) {
+              throw new Error(`Compile callback returned HTTP ${response.status}.`);
+            }
+            console.log('Compile result recorded.');
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Keep the PDF and compile log as a run artifact
+        if: always() && steps.prepare.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: magazine-${{ steps.prepare.outputs.edition_id }}
+          path: |
+            magazine/build/edition.pdf
+            magazine/build/edition.log
+          if-no-files-found: ignore
+          retention-days: 14

@@ -12,6 +12,7 @@ import { readMagazineTemplate } from "@/lib/magazine/template";
 import { requireEditor } from "@/lib/auth/require-editor";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
+import { getDraftPublishReadiness } from "@/lib/magazine/publication";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -38,13 +39,17 @@ export default async function DraftPage() {
   }
 
   const admin = createSupabaseAdminClient();
-  const texUrl = edition.tex_path
-    ? ((
-        await admin.storage
-          .from("drafts")
-          .createSignedUrl(edition.tex_path, 3600)
-      ).data?.signedUrl ?? null)
-    : null;
+  const [texResult, pdfResult] = await Promise.all([
+    edition.tex_path
+      ? admin.storage.from("drafts").createSignedUrl(edition.tex_path, 3600)
+      : Promise.resolve({ data: null }),
+    edition.pdf_path
+      ? admin.storage.from("drafts").createSignedUrl(edition.pdf_path, 3600)
+      : Promise.resolve({ data: null }),
+  ]);
+  const texUrl = texResult.data?.signedUrl ?? null;
+  const pdfUrl = pdfResult.data?.signedUrl ?? null;
+  const publishReadiness = await getDraftPublishReadiness(edition);
   const layout = asRecord(edition.layout);
   const plan = asRecord(layout.plan);
   const provider = plan.provider === "gemini" ? "gemini" : "fallback";
@@ -105,6 +110,10 @@ export default async function DraftPage() {
             template={template}
             editorNote={edition.editor_note ?? ""}
             editorNoteReviewed={edition.editor_note_approved}
+            editionId={edition.id}
+            createdAt={edition.created_at}
+            publishReadiness={publishReadiness}
+            pdfUrl={pdfUrl}
             texUrl={texUrl}
             provider={provider}
             warning={warning}

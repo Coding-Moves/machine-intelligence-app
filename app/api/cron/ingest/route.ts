@@ -27,7 +27,9 @@ export async function POST(request: Request) {
 
   try {
     const result = await runIngest();
-    return Response.json(result, { status: result.ok ? 200 : 502 });
+    // Feed-level failures are included in the run record. The automation still
+    // needs to run the PDF compiler for the current draft after a partial fetch.
+    return Response.json(result);
   } catch (error) {
     console.error("The authenticated ingest request failed.", error);
     return Response.json(

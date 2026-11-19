@@ -4,6 +4,7 @@ import { z } from "zod";
 import { fetchArticlePageText, fetchRssDocument } from "@/lib/ingest/fulltext";
 import {
   MAX_ARTICLE_TEXT_LENGTH,
+  filterArticlesToIssueWindow,
   parseFeed,
   type FeedArticle,
   type IngestSource,
@@ -12,8 +13,10 @@ import { findMatchingStory, fingerprintTitle } from "@/lib/ingest/cluster";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import { enrichPendingStories } from "@/lib/ingest/enrich";
+import { rebuildMagazineDraft } from "@/lib/magazine/build";
 
 const MAX_FULL_TEXT_REQUESTS_PER_SOURCE = 2;
+const URL_HASH_LOOKUP_BATCH_SIZE = 50;
 const STORY_LOOKBACK_DAYS = 5;
 
 const storedArticleResultSchema = z.object({
@@ -67,10 +70,22 @@ export async function runIngest() {
   }
 
   try {
+    const { data: issueEdition, error: draftError } = await supabase
+      .from("editions")
+      .select("created_at, window_start")
+      .eq("status", "draft")
+      .maybeSingle();
+    if (draftError || !issueEdition) {
+      throw new Error("Could not find the current magazine issue window.");
+    }
+    const issueWindowStart =
+      issueEdition.window_start ?? issueEdition.created_at;
+
     const { data: sources, error: sourcesError } = await supabase
       .from("sources")
       .select("id, name, feed_url, homepage, region, kind, fetch_full_text")
       .eq("active", true)
+      .eq("trusted", true)
       .order("name");
 
     if (sourcesError) throw new Error("Could not load active sources.");
@@ -91,33 +106,45 @@ export async function runIngest() {
     const storyCandidates = [...(recentStories ?? [])];
     const sourceErrors: IngestError[] = [];
     const warnings: IngestError[] = [];
+    const shortItemsBySource = new Map<string, number>();
     let newArticles = 0;
     let newStories = 0;
     let duplicateArticles = 0;
     let skippedShortItems = 0;
     const storiesToEnrich = new Set<string>();
+    let approvedStoryChanged = false;
 
     for (const source of (sources ?? []) as IngestSource[]) {
       try {
         const xml = await fetchRssDocument(source.feed_url, source);
-        const feedArticles = await parseFeed(xml, source);
+        const feedArticles = filterArticlesToIssueWindow(
+          await parseFeed(xml, source),
+          issueWindowStart,
+        );
         if (!feedArticles.length) continue;
 
-        const { data: existingArticles, error: existingArticlesError } =
-          await supabase
-            .from("articles")
-            .select("url_hash")
-            .in(
-              "url_hash",
-              feedArticles.map((article) => article.urlHash),
-            );
+        const knownHashes = new Set<string>();
+        for (
+          let offset = 0;
+          offset < feedArticles.length;
+          offset += URL_HASH_LOOKUP_BATCH_SIZE
+        ) {
+          const hashBatch = feedArticles
+            .slice(offset, offset + URL_HASH_LOOKUP_BATCH_SIZE)
+            .map((article) => article.urlHash);
+          const { data: existingArticles, error: existingArticlesError } =
+            await supabase
+              .from("articles")
+              .select("url_hash")
+              .in("url_hash", hashBatch);
 
-        if (existingArticlesError) {
-          throw new Error("Could not check previously fetched article URLs.");
+          if (existingArticlesError) {
+            throw new Error("Could not check previously fetched article URLs.");
+          }
+          for (const article of existingArticles ?? []) {
+            knownHashes.add(article.url_hash);
+          }
         }
-        const knownHashes = new Set(
-          (existingArticles ?? []).map((article) => article.url_hash),
-        );
         const newFeedArticles = feedArticles.filter(
           (article) => !knownHashes.has(article.urlHash),
         );
@@ -148,6 +175,10 @@ export async function runIngest() {
           const content = selectArticleContent(article, pageText);
           if (content.text.length < 100) {
             skippedShortItems += 1;
+            shortItemsBySource.set(
+              source.name,
+              (shortItemsBySource.get(source.name) ?? 0) + 1,
+            );
             continue;
           }
 
@@ -180,6 +211,9 @@ export async function runIngest() {
 
           newArticles += 1;
           storiesToEnrich.add(stored.story_id);
+          if (matchingStory?.status === "approved") {
+            approvedStoryChanged = true;
+          }
           if (stored.story_created) {
             newStories += 1;
             storyCandidates.push({
@@ -197,6 +231,15 @@ export async function runIngest() {
           message: getErrorMessage(error),
         });
       }
+    }
+
+    for (const [sourceName, count] of shortItemsBySource) {
+      const existingError = sourceErrors.find(
+        (sourceError) => sourceError.source === sourceName,
+      );
+      const message = `${count} recent feed item${count === 1 ? "" : "s"} had too little text to review and were not added to the magazine.`;
+      if (existingError) existingError.message += ` ${message}`;
+      else sourceErrors.push({ source: sourceName, message });
     }
 
     if (!sources?.length) {
@@ -219,13 +262,31 @@ export async function runIngest() {
       warnings.push({ source: "AI story writer", message: aiWarning });
     }
 
+    let draft: Awaited<ReturnType<typeof rebuildMagazineDraft>> | null = null;
+    if (approvedStoryChanged) {
+      try {
+        draft = await rebuildMagazineDraft();
+      } catch (error) {
+        warnings.push({
+          source: "Magazine builder",
+          message: getErrorMessage(error),
+        });
+      }
+    }
+
     const result = {
-      ok: sourceErrors.length === 0,
+      ok:
+        sourceErrors.length === 0 && (!approvedStoryChanged || draft !== null),
       runId: run.id,
-      sourcesProcessed: Math.max(
-        0,
-        (sources?.length ?? 0) - sourceErrors.length,
-      ),
+      sourcesProcessed: (sources ?? []).filter(
+        (source) =>
+          !sourceErrors.some(
+            (sourceError) => sourceError.source === source.name,
+          ),
+      ).length,
+      scannedTrustedSourceIds: (sources ?? [])
+        .map((source) => source.id)
+        .sort(),
       newArticles,
       newStories,
       enrichedStories,
@@ -233,6 +294,7 @@ export async function runIngest() {
       skippedShortItems,
       storiesQueuedForEnrichment: storiesToEnrich.size,
       aiWarning,
+      draft,
       sourceErrors,
       warnings,
     };

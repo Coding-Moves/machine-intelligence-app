@@ -27,6 +27,7 @@ export interface Database {
           region: SourceRegion;
           kind: SourceKind;
           trust_weight: number;
+          trusted: boolean;
           fetch_full_text: boolean;
           active: boolean;
           created_at: string;
@@ -39,6 +40,7 @@ export interface Database {
           region: SourceRegion;
           kind: SourceKind;
           trust_weight?: number;
+          trusted?: boolean;
           fetch_full_text?: boolean;
           active?: boolean;
           created_at?: string;
@@ -51,6 +53,7 @@ export interface Database {
           region?: SourceRegion;
           kind?: SourceKind;
           trust_weight?: number;
+          trusted?: boolean;
           fetch_full_text?: boolean;
           active?: boolean;
           created_at?: string;
@@ -253,7 +256,9 @@ export interface Database {
           window_start: string | null;
           layout: Json;
           tex_path: string | null;
+          tex_hash: string | null;
           pdf_path: string | null;
+          pdf_tex_hash: string | null;
           cover_path: string | null;
           in_this_issue: string[];
           editor_note: string | null;
@@ -269,7 +274,9 @@ export interface Database {
           window_start?: string | null;
           layout?: Json;
           tex_path?: string | null;
+          tex_hash?: string | null;
           pdf_path?: string | null;
+          pdf_tex_hash?: string | null;
           cover_path?: string | null;
           in_this_issue?: string[];
           editor_note?: string | null;
@@ -285,7 +292,9 @@ export interface Database {
           window_start?: string | null;
           layout?: Json;
           tex_path?: string | null;
+          tex_hash?: string | null;
           pdf_path?: string | null;
+          pdf_tex_hash?: string | null;
           cover_path?: string | null;
           in_this_issue?: string[];
           editor_note?: string | null;
@@ -335,6 +344,10 @@ export interface Database {
     Views: Record<string, never>;
     Functions: {
       is_editor: { Args: Record<PropertyKey, never>; Returns: boolean };
+      publish_draft_edition: {
+        Args: { p_edition_id: string };
+        Returns: string;
+      };
       store_ingested_article: {
         Args: {
           p_source_id: string;

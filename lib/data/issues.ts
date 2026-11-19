@@ -25,7 +25,9 @@ function toIssue(row: EditionRow, projectUrl: string): Issue {
     date: row.published_at ?? "",
     inThisIssue: row.in_this_issue ?? [],
     stories: [],
-    pdfUrl: publicStorageUrl(projectUrl, row.pdf_path),
+    pdfUrl: row.pdf_path
+      ? `/api/issues/${encodeURIComponent(row.slug)}/pdf`
+      : null,
     coverUrl: publicStorageUrl(projectUrl, row.cover_path),
     isMock: false,
   };

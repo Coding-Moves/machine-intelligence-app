@@ -10,7 +10,9 @@ export default async function SourcesPage() {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("sources")
-    .select("id, name, feed_url, homepage, region, kind, trust_weight, active")
+    .select(
+      "id, name, feed_url, homepage, region, kind, trust_weight, trusted, active",
+    )
     .order("active", { ascending: false })
     .order("name");
   if (error) throw new Error("Could not load the configured RSS sources.");
@@ -22,6 +24,7 @@ export default async function SourcesPage() {
     region: source.region,
     kind: source.kind,
     trustWeight: source.trust_weight,
+    trusted: source.trusted,
     active: source.active,
   }));
 

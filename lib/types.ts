@@ -13,6 +13,7 @@ export interface Source {
   region: SourceRegion;
   kind: SourceKind;
   trustWeight: number;
+  trusted: boolean;
   active: boolean;
 }
 

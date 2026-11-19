@@ -1,16 +1,22 @@
 import {
+  publishDraftAction,
   rebuildDraftAction,
   saveDraftEditorNoteAction,
   saveDraftTemplateAction,
 } from "@/app/desk/actions";
 import { Button } from "@/components/ui/button";
 import type { MagazineTemplate } from "@/lib/magazine/template";
+import type { PublishReadiness } from "@/lib/magazine/publication-readiness";
 
 export function DraftIssueEditor({
   title,
   template,
   editorNote,
   editorNoteReviewed,
+  editionId,
+  createdAt,
+  publishReadiness,
+  pdfUrl,
   texUrl,
   provider,
   warning,
@@ -20,6 +26,10 @@ export function DraftIssueEditor({
   template: MagazineTemplate;
   editorNote: string;
   editorNoteReviewed: boolean;
+  editionId: string;
+  createdAt: string;
+  publishReadiness: PublishReadiness;
+  pdfUrl: string | null;
   texUrl: string | null;
   provider: string;
   warning: string | null;
@@ -296,6 +306,59 @@ export function DraftIssueEditor({
           </span>
         </div>
       </form>
+
+      <section className="border-line border bg-white p-5 sm:p-7">
+        <div className="border-line border-b pb-5">
+          <h2 className="font-serif text-2xl tracking-tight">
+            Publish checklist
+          </h2>
+          <p className="text-muted mt-2 max-w-2xl text-sm leading-6">
+            Publishing stays locked for the first 14 days. Gemini must check
+            each new story, an editor must decide every AI story, all approved
+            stories must be placed, and the reviewed issue PDF must be ready.
+          </p>
+          <p className="text-muted mt-2 text-xs">
+            Draft opened{" "}
+            {new Date(createdAt).toLocaleDateString("en", {
+              timeZone: "UTC",
+              dateStyle: "medium",
+            })}{" "}
+            UTC · {publishReadiness.storyCount} stories in the layout
+          </p>
+        </div>
+        {pdfUrl ? (
+          <a
+            className="text-leaf-dark mt-5 inline-flex font-medium underline underline-offset-4"
+            href={pdfUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Preview current PDF
+          </a>
+        ) : null}
+        {publishReadiness.canPublish ? (
+          <p className="mt-5 border-l-2 border-[#28735a] bg-[#eef5ef] px-3 py-2 text-sm leading-6 text-[#245b45]">
+            All checks passed. An editor can publish this issue now.
+          </p>
+        ) : (
+          <ul className="text-muted mt-5 list-disc space-y-2 pl-5 text-sm leading-6">
+            {publishReadiness.blockers.map((blocker) => (
+              <li key={blocker}>{blocker}</li>
+            ))}
+          </ul>
+        )}
+        <form action={publishDraftAction} className="mt-6">
+          <input type="hidden" name="editionId" value={editionId} />
+          <Button type="submit" disabled={!publishReadiness.canPublish}>
+            Publish issue
+          </Button>
+          {!publishReadiness.canPublish ? (
+            <span className="text-muted ml-3 text-xs">
+              Locked until every check passes
+            </span>
+          ) : null}
+        </form>
+      </section>
     </div>
   );
 }

@@ -10,6 +10,7 @@ const sources: Record<string, Source> = {
     region: "pakistan",
     kind: "government",
     trustWeight: 1.2,
+    trusted: true,
     active: true,
   },
   pda: {
@@ -21,6 +22,7 @@ const sources: Record<string, Source> = {
     region: "pakistan",
     kind: "government",
     trustWeight: 1.2,
+    trusted: true,
     active: true,
   },
   deepseek: {
@@ -31,6 +33,7 @@ const sources: Record<string, Source> = {
     region: "global",
     kind: "official_blog",
     trustWeight: 1.1,
+    trusted: true,
     active: true,
   },
   tufts: {
@@ -42,6 +45,7 @@ const sources: Record<string, Source> = {
     region: "global",
     kind: "research",
     trustWeight: 1.1,
+    trusted: true,
     active: true,
   },
   ucsd: {
@@ -53,6 +57,7 @@ const sources: Record<string, Source> = {
     region: "global",
     kind: "research",
     trustWeight: 1.1,
+    trusted: true,
     active: true,
   },
 };

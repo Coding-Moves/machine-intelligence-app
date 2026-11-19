@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import {
   createIssuePlan,
@@ -51,14 +52,15 @@ function jsonRecord(value: Json): Record<string, Json | undefined> {
     : {};
 }
 
-async function fetchApprovedStories(admin: AdminClient) {
+async function fetchApprovedStories(admin: AdminClient, windowStart: string) {
   const { data, error } = await admin
     .from("stories")
     .select(
       "id, headline, summary, key_facts, section, final_score, status, is_ai_related",
     )
     .eq("status", "approved")
-    .or("is_ai_related.is.null,is_ai_related.eq.true")
+    .eq("is_ai_related", true)
+    .gte("last_updated_at", windowStart)
     .order("final_score", { ascending: false, nullsFirst: false });
   if (error) throw new Error("Could not load approved stories.");
 
@@ -79,15 +81,20 @@ async function fetchApprovedStories(admin: AdminClient) {
     ...new Set((articles ?? []).map((article) => article.source_id)),
   ];
   const { data: sources, error: sourcesError } = sourceIds.length
-    ? await admin.from("sources").select("id, name").in("id", sourceIds)
+    ? await admin
+        .from("sources")
+        .select("id, name")
+        .in("id", sourceIds)
+        .eq("trusted", true)
     : { data: [], error: null };
   if (sourcesError) throw new Error("Could not load story source names.");
   const sourceName = new Map(
     (sources ?? []).map((source) => [source.id, source.name]),
   );
+  const trustedSourceIds = new Set(sourceName.keys());
   const articlesByStory = new Map<string, RenderStory["sources"]>();
   for (const article of articles ?? []) {
-    if (!article.story_id) continue;
+    if (!article.story_id || !trustedSourceIds.has(article.source_id)) continue;
     const values = articlesByStory.get(article.story_id) ?? [];
     values.push({
       name: sourceName.get(article.source_id) ?? "Source",
@@ -174,7 +181,8 @@ async function saveRenderedTex(input: {
     editorNote: input.editorNote,
     editorNoteApproved: input.editorNoteApproved,
   });
-  const path = `${input.edition.id}/edition.tex`;
+  const texHash = createHash("sha256").update(tex, "utf8").digest("hex");
+  const path = `${input.edition.id}/${texHash}.tex`;
   const { error: uploadError } = await input.admin.storage
     .from("drafts")
     .upload(
@@ -187,7 +195,7 @@ async function saveRenderedTex(input: {
     );
   if (uploadError)
     throw new Error("Could not save the draft magazine source file.");
-  return path;
+  return { path, texHash };
 }
 
 export async function rebuildMagazineDraft(options?: {
@@ -200,7 +208,10 @@ export async function rebuildMagazineDraft(options?: {
       "No draft issue exists. Apply the database migrations first.",
     );
   const template = readMagazineTemplate(edition.layout);
-  const { stories, skipped } = await fetchApprovedStories(admin);
+  const { stories, skipped } = await fetchApprovedStories(
+    admin,
+    edition.window_start ?? edition.created_at,
+  );
   const plan = await createIssuePlan(toPlanStories(stories), template.sections);
   const note = options?.preserveEditorNote
     ? (edition.editor_note ?? "")
@@ -228,7 +239,7 @@ export async function rebuildMagazineDraft(options?: {
       generatedAt,
     },
   } as Json;
-  const texPath = await saveRenderedTex({
+  const rendered = await saveRenderedTex({
     admin,
     edition,
     template,
@@ -241,7 +252,8 @@ export async function rebuildMagazineDraft(options?: {
     .from("editions")
     .update({
       layout,
-      tex_path: texPath,
+      tex_path: rendered.path,
+      tex_hash: rendered.texHash,
       in_this_issue: sortPlanItems(plan.items, template.sections)
         .map(
           (item) =>
@@ -250,6 +262,8 @@ export async function rebuildMagazineDraft(options?: {
         .filter((headline): headline is string => Boolean(headline)),
       editor_note: note,
       editor_note_approved: false,
+      pdf_path: null,
+      pdf_tex_hash: null,
     })
     .eq("id", edition.id)
     .eq("status", "draft");
@@ -311,10 +325,13 @@ export async function refreshDraftTex(editionId: string) {
     .maybeSingle();
   if (error || !edition)
     throw new Error("Could not find the current draft issue.");
-  const { stories } = await fetchApprovedStories(admin);
+  const { stories } = await fetchApprovedStories(
+    admin,
+    edition.window_start ?? edition.created_at,
+  );
   const template = readMagazineTemplate(edition.layout);
   const plan = getSavedPlan(edition.layout, stories, template.sections);
-  const path = await saveRenderedTex({
+  const rendered = await saveRenderedTex({
     admin,
     edition,
     template,
@@ -326,13 +343,16 @@ export async function refreshDraftTex(editionId: string) {
   const { error: updateError } = await admin
     .from("editions")
     .update({
-      tex_path: path,
+      tex_path: rendered.path,
+      tex_hash: rendered.texHash,
       in_this_issue: sortPlanItems(plan.items, template.sections)
         .map(
           (item) =>
             stories.find((story) => story.id === item.storyId)?.headline,
         )
         .filter((headline): headline is string => Boolean(headline)),
+      pdf_path: null,
+      pdf_tex_hash: null,
     })
     .eq("id", edition.id)
     .eq("status", "draft");

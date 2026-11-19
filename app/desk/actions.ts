@@ -18,6 +18,18 @@ import {
   magazineTemplateSchema,
   readMagazineTemplate,
 } from "@/lib/magazine/template";
+import { getDraftPublishReadiness } from "@/lib/magazine/publication";
+import { unsupportedNumbers } from "@/lib/ingest/scoring";
+
+function hasPassedNumberCheck(value: unknown) {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    "failed" in value &&
+    value.failed === false,
+  );
+}
 
 export type EditorActionState = {
   message: string;
@@ -34,6 +46,32 @@ const storySectionSchema = z.enum([
   "research",
   "industry",
 ]);
+
+async function getTrustedStoryEvidence(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  storyId: string,
+) {
+  const { data: articles, error: articlesError } = await admin
+    .from("articles")
+    .select("source_id, content_text")
+    .eq("story_id", storyId);
+  if (articlesError) throw new Error("Could not load story source evidence.");
+  const sourceIds = [
+    ...new Set((articles ?? []).map((article) => article.source_id)),
+  ];
+  const { data: sources, error: sourcesError } = sourceIds.length
+    ? await admin
+        .from("sources")
+        .select("id")
+        .in("id", sourceIds)
+        .eq("trusted", true)
+    : { data: [], error: null };
+  if (sourcesError) throw new Error("Could not verify trusted story sources.");
+  const trustedSourceIds = new Set((sources ?? []).map((source) => source.id));
+  return (articles ?? []).filter((article) =>
+    trustedSourceIds.has(article.source_id),
+  );
+}
 
 async function verifyAdmin() {
   const { user, editor } = await requireAdmin();
@@ -144,7 +182,7 @@ export async function setStoryStatus(formData: FormData) {
   const admin = createSupabaseAdminClient();
   const { data: story, error: lookupError } = await admin
     .from("stories")
-    .select("headline, summary, section, is_ai_related, status")
+    .select("headline, summary, section, is_ai_related, status, verification")
     .eq("id", id.data)
     .maybeSingle();
   if (lookupError || !story) throw new Error("Could not find that story.");
@@ -156,9 +194,22 @@ export async function setStoryStatus(formData: FormData) {
       "Add a summary and choose a section before approving this story.",
     );
   }
-  if (status.data === "approved" && story.is_ai_related === false) {
+  if (status.data === "approved" && story.is_ai_related !== true) {
     throw new Error(
-      "This story is marked as not AI-related. Edit its AI relevance after checking the source before approval.",
+      "Gemini must confirm this story is about AI before it can be approved.",
+    );
+  }
+  if (status.data === "approved" && !hasPassedNumberCheck(story.verification)) {
+    throw new Error(
+      "The number check has not passed. Correct unsupported numbers against the trusted sources or reject the story before approval.",
+    );
+  }
+  if (
+    status.data === "approved" &&
+    (await getTrustedStoryEvidence(admin, id.data)).length === 0
+  ) {
+    throw new Error(
+      "This story needs at least one source marked trusted before approval.",
     );
   }
 
@@ -166,6 +217,7 @@ export async function setStoryStatus(formData: FormData) {
     .from("stories")
     .update({
       status: status.data,
+      last_updated_at: new Date().toISOString(),
       reject_reason:
         status.data === "rejected" ? rejectReason.data || null : null,
     })
@@ -196,36 +248,45 @@ export async function saveStoryEdit(formData: FormData) {
     .max(3000)
     .safeParse(formData.get("summary"));
   const section = storySectionSchema.safeParse(formData.get("section"));
-  const aiRelated = z
-    .enum(["true", "false", "unknown"])
-    .safeParse(formData.get("aiRelated"));
   if (
     !id.success ||
     !headline.success ||
     !summary.success ||
-    !section.success ||
-    !aiRelated.success
+    !section.success
   ) {
-    throw new Error(
-      "Enter a headline, summary, section, and AI relevance before saving.",
-    );
+    throw new Error("Enter a headline, summary, and section before saving.");
   }
 
   const admin = createSupabaseAdminClient();
   const { data: story, error: lookupError } = await admin
     .from("stories")
-    .select("status")
+    .select("status, key_facts")
     .eq("id", id.data)
     .maybeSingle();
   if (lookupError || !story) throw new Error("Could not find that story.");
+  const trustedEvidence = await getTrustedStoryEvidence(admin, id.data);
+  const sourceTexts = trustedEvidence.map((article) => article.content_text);
+  const keyFacts = z
+    .array(z.object({ value: z.string() }))
+    .safeParse(story.key_facts);
+  const unsupported = unsupportedNumbers(
+    [
+      summary.data,
+      ...(keyFacts.success ? keyFacts.data.map((fact) => fact.value) : []),
+    ],
+    sourceTexts,
+  );
   const { error } = await admin
     .from("stories")
     .update({
       headline: headline.data,
       summary: summary.data,
       section: section.data,
-      is_ai_related:
-        aiRelated.data === "unknown" ? null : aiRelated.data === "true",
+      last_updated_at: new Date().toISOString(),
+      verification: {
+        failed: unsupported.length > 0,
+        unsupported_numbers: unsupported,
+      },
     })
     .eq("id", id.data)
     .neq("status", "published");
@@ -329,4 +390,42 @@ export async function rebuildDraftAction() {
   await rebuildMagazineDraft();
   revalidatePath("/desk");
   revalidatePath("/desk/stories");
+}
+
+export async function publishDraftAction(formData: FormData) {
+  await requireEditor();
+  const id = storyIdSchema.safeParse(formData.get("editionId"));
+  if (!id.success) throw new Error("Invalid draft edition.");
+
+  const admin = createSupabaseAdminClient();
+  const { data: edition, error: editionError } = await admin
+    .from("editions")
+    .select("*")
+    .eq("id", id.data)
+    .eq("status", "draft")
+    .maybeSingle();
+  if (editionError || !edition)
+    throw new Error("This draft is no longer available.");
+
+  const readiness = await getDraftPublishReadiness(edition);
+  if (!readiness.canPublish) {
+    throw new Error(
+      `This issue is not ready to publish: ${readiness.blockers.join(" ")}`,
+    );
+  }
+
+  const { error } = await admin.rpc("publish_draft_edition", {
+    p_edition_id: id.data,
+  });
+  if (error) {
+    throw new Error(
+      error.message || "The database could not publish this issue.",
+    );
+  }
+
+  revalidatePath("/");
+  revalidatePath("/issues");
+  revalidatePath("/desk");
+  revalidatePath("/desk/issues");
+  redirect("/desk/issues?published=1");
 }

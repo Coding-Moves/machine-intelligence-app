@@ -5,7 +5,6 @@ import type { SourceKind, SourceRegion } from "@/lib/supabase/types";
 
 export const INGEST_USER_AGENT =
   "MachineIntelligenceMagazine/0.1 (+https://github.com/Coding-Moves/machine-intelligence-app)";
-export const MAX_ITEMS_PER_SOURCE = 10;
 export const MAX_ARTICLE_TEXT_LENGTH = 30_000;
 export const RECENT_ARTICLE_WINDOW_DAYS = 30;
 
@@ -30,6 +29,21 @@ export interface FeedArticle {
   publishedAt: string | null;
   rssText: string;
   ogImageUrl: string | null;
+}
+
+export function filterArticlesToIssueWindow(
+  articles: FeedArticle[],
+  windowStart: string,
+) {
+  const cutoff = Date.parse(windowStart);
+  if (!Number.isFinite(cutoff)) {
+    throw new Error("The current magazine issue has an invalid start date.");
+  }
+
+  return articles.filter(
+    (article) =>
+      !article.publishedAt || Date.parse(article.publishedAt) >= cutoff,
+  );
 }
 
 const rssParser = new Parser<Record<string, unknown>, CustomRssItem>({
@@ -103,7 +117,6 @@ export async function parseFeed(xml: string, source: IngestSource) {
   const articles: FeedArticle[] = [];
 
   for (const item of feed.items) {
-    if (articles.length >= MAX_ITEMS_PER_SOURCE) break;
     const title = item.title?.replace(/\s+/g, " ").trim().slice(0, 500);
     const candidateUrl = item.link?.trim();
     if (!title || !candidateUrl) continue;
