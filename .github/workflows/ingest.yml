@@ -15,7 +15,7 @@ jobs:
   call-ingest:
     runs-on: ubuntu-latest
     steps:
-      - name: Call the ingest stub
+      - name: Call the authenticated ingest endpoint
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -28,11 +28,13 @@ jobs:
             echo "::error title=Configuration::CRON_SECRET is not set."
             exit 1
           fi
+          APP_URL="${APP_URL%/}"
           http_code=$(curl --silent --show-error \
             --output "$RUNNER_TEMP/ingest-response.json" \
             --write-out "%{http_code}" \
             --request POST \
             --header "Authorization: Bearer $CRON_SECRET" \
+            --max-time 75 \
             "$APP_URL/api/cron/ingest")
           cat "$RUNNER_TEMP/ingest-response.json"
           if [[ ! "$http_code" =~ ^2[0-9][0-9]$ ]]; then
