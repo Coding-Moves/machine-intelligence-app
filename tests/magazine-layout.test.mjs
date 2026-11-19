@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   createFallbackLayout,
   isValidIssueLayout,
+  sectionLayoutChanged,
   sortPlanItems,
 } from "../lib/magazine/layout.ts";
 
@@ -90,5 +91,23 @@ test("plan ordering follows magazine section order, then story order", () => {
   assert.deepEqual(
     ordered.map((item) => item.storyId),
     ["pakistan-1", "pakistan-2", "global", "industry"],
+  );
+});
+
+test("section labels or target changes trigger a fresh plan", () => {
+  assert.equal(sectionLayoutChanged(sections, sections), false);
+  assert.equal(
+    sectionLayoutChanged(sections, [
+      { ...sections[0], slots: 2 },
+      ...sections.slice(1),
+    ]),
+    true,
+  );
+  assert.equal(
+    sectionLayoutChanged(sections, [
+      { ...sections[0], label: "Pakistan & region" },
+      ...sections.slice(1),
+    ]),
+    true,
   );
 });

@@ -15,6 +15,24 @@ export type LayoutStory = {
   finalScore: number;
 };
 
+export function sectionLayoutChanged(
+  previous: MagazineTemplate["sections"],
+  next: MagazineTemplate["sections"],
+) {
+  return (
+    previous.length !== next.length ||
+    next.some((section, index) => {
+      const prior = previous[index];
+      return (
+        !prior ||
+        section.id !== prior.id ||
+        section.label !== prior.label ||
+        section.slots !== prior.slots
+      );
+    })
+  );
+}
+
 export function sortPlanItems<
   T extends { section: StorySection; order: number },
 >(items: T[], sections: MagazineTemplate["sections"]) {

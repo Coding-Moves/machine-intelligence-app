@@ -190,7 +190,9 @@ async function saveRenderedTex(input: {
   return path;
 }
 
-export async function rebuildMagazineDraft() {
+export async function rebuildMagazineDraft(options?: {
+  preserveEditorNote?: boolean;
+}) {
   const admin = createSupabaseAdminClient();
   const edition = await getDraftEdition();
   if (!edition)
@@ -200,7 +202,9 @@ export async function rebuildMagazineDraft() {
   const template = readMagazineTemplate(edition.layout);
   const { stories, skipped } = await fetchApprovedStories(admin);
   const plan = await createIssuePlan(toPlanStories(stories), template.sections);
-  const note = plan.editorNote || edition.editor_note || "";
+  const note = options?.preserveEditorNote
+    ? (edition.editor_note ?? "")
+    : plan.editorNote || edition.editor_note || "";
   const generatedAt = new Date().toISOString();
   const planDetails = {
     ...plan,

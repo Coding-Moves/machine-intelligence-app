@@ -13,6 +13,7 @@ import {
   saveDraftEditorNote,
   saveDraftTemplate,
 } from "@/lib/magazine/build";
+import { sectionLayoutChanged } from "@/lib/magazine/layout";
 import {
   magazineTemplateSchema,
   readMagazineTemplate,
@@ -296,7 +297,11 @@ export async function saveDraftTemplateAction(formData: FormData) {
     title: title.data,
     template: template.data,
   });
-  await refreshDraftTex(editionId);
+  if (sectionLayoutChanged(current.sections, template.data.sections)) {
+    await rebuildMagazineDraft({ preserveEditorNote: true });
+  } else {
+    await refreshDraftTex(editionId);
+  }
   revalidatePath("/desk");
   revalidatePath("/desk/issues");
 }
