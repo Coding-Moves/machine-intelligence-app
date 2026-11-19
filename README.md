@@ -7,7 +7,7 @@ The foundation, RSS ingestion, AI story review, and first magazine-draft builder
 ## Foundation status
 
 - **Public site:** home, issue archive and issue detail, About, How it is made, Privacy, sitemap, robots, Open Graph image, and a custom not-found page.
-- **Editor desk:** Supabase email-link sign-in for approved addresses on the editor list; Supabase-backed story review and quarantine; editable issue title, publication masthead, cover and back-cover copy, theme, section names, slot targets, supervisor, editor credits, and editor note.
+- **Editor desk:** Supabase email-and-password sign-in for approved addresses on the editor list; Supabase-backed story review and quarantine; editable issue title, publication masthead, cover and back-cover copy, theme, section names, slot targets, supervisor, editor credits, and editor note.
 - **Supabase:** editor, edition, run, source, article, story, and image tables; row-level security; public issues and private drafts buckets; vector extension.
 - **Ingest:** authenticated RSS collection, robots-aware article text extraction, URL-hash deduplication, conservative title-based grouping, optional Gemini summaries and scoring, and a numeric claim check against stored source text.
 - **Draft builder:** Gemini arranges approved stories within their editor-assigned sections, chooses story order and presentation, and can draft an editor note using structured JSON. Editable section slot targets guide the layout; overflow stories become briefs so no approved story is dropped. The app validates the plan, renders trusted TeX with escaped story text, and stores the source file in the private `drafts` bucket.
