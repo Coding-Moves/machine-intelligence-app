@@ -110,11 +110,11 @@ You can generate a local cron secret with:
 openssl rand -hex 32
 ```
 
-Set `GEMINI_API_KEY` in Vercel if you want the ingest route to summarize and score new stories and the draft builder to arrange approved stories and draft an editor note. The editable template's section slot counts guide Gemini's layout; if a section has more approved stories than slots, the model uses brief presentation for overflow and keeps every approved story. `WRITER_MODEL` and `DESIGNER_MODEL` are optional model overrides; when blank, both use Google's stable `gemini-3.8-flash` model. Do not put the Gemini key in GitHub or the browser. `GITHUB_DISPATCH_TOKEN` is reserved for future PDF compilation and is not used yet. `APP_URL` is used by the GitHub Actions workflow, not by the web app.
+Set `GEMINI_API_KEY` in Vercel Production if you want the ingest route to summarize and score new stories and the draft builder to arrange approved stories and draft an editor note. The editable template's section slot counts guide Gemini's layout; if a section has more approved stories than slots, the model uses brief presentation for overflow and keeps every approved story. `WRITER_MODEL` and `DESIGNER_MODEL` are optional model overrides; when blank, both use Google's stable `gemini-3.8-flash` model. Do not put the Gemini key in GitHub or the browser. `GITHUB_DISPATCH_TOKEN` is reserved for future PDF compilation and is not used yet. `APP_URL` is used by the GitHub Actions workflow, not by the web app.
 
 ## 5. Deploy the app to Vercel
 
-Import Coding-Moves/machine-intelligence-app into Vercel and connect the GitHub organization repository. Add these environment variables in Vercel for the environments you use:
+Import Coding-Moves/machine-intelligence-app into Vercel and connect the GitHub organization repository. Add these environment variables to Vercel Production:
 
 - NEXT_PUBLIC_SITE_URL
 - NEXT_PUBLIC_SUPABASE_URL
@@ -125,7 +125,7 @@ Import Coding-Moves/machine-intelligence-app into Vercel and connect the GitHub 
 - WRITER_MODEL (optional)
 - DESIGNER_MODEL (optional)
 
-Set NEXT_PUBLIC_SITE_URL to the deployed app URL. The service-role key and CRON_SECRET must remain server-side. The repository config places server functions in Vercel's Mumbai region, bom1.
+Set NEXT_PUBLIC_SITE_URL to the deployed app URL. Keep production credentials in Vercel's Production environment. Do not copy the production service-role key, cron secret, or Gemini key into branch Preview deployments: public pull request builds can execute changed code. Use a separate staging Supabase project and staging-only credentials if Preview deployments need a working editor desk. Without Preview Supabase settings, the public site still works and editor login displays a setup message. The repository config places server functions in Vercel's Mumbai region, bom1.
 
 No custom domain is required for this foundation. If a domain is chosen later, set NEXT_PUBLIC_SITE_URL and the Supabase redirect allowlist to that URL.
 
