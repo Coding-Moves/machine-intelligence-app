@@ -28,6 +28,31 @@ function hasVerificationFailure(value: unknown) {
   );
 }
 
+function hasPassedNumberCheck(value: unknown) {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    "failed" in value &&
+    value.failed === false,
+  );
+}
+
+function approvalBlockReason(story: StoryReview) {
+  if (!story.summary?.trim()) return "Add a summary before approval.";
+  if (!story.section) return "Choose a section before approval.";
+  if (story.isAiRelated !== true) {
+    return "Gemini must confirm this story is AI-related.";
+  }
+  if (!story.sources.length) return "This story needs a trusted source.";
+  if (hasVerificationFailure(story.verification)) {
+    return "Correct unsupported numbers before approval.";
+  }
+  if (!hasPassedNumberCheck(story.verification)) {
+    return "The number check must pass against the trusted source text before approval.";
+  }
+  return undefined;
+}
+
 export function StoryBoard({
   stories,
   sections,
@@ -100,11 +125,32 @@ export function StoryBoard({
                         {story.summary ||
                           "No editor summary yet. Add one before approval."}
                       </p>
+                      <p className="text-muted mt-2 text-xs">
+                        Gemini AI check:{" "}
+                        {story.isAiRelated === true
+                          ? "AI-related"
+                          : story.isAiRelated === false
+                            ? "marked outside the AI scope"
+                            : "pending"}
+                      </p>
+                      {!story.sources.length ? (
+                        <p className="mt-3 border-l-2 border-[#b76b23] bg-[#fff7e9] px-3 py-2 text-sm text-[#704719]">
+                          No source is currently marked trusted. This story
+                          cannot be approved.
+                        </p>
+                      ) : null}
                       {hasVerificationFailure(story.verification) ? (
                         <p className="mt-3 border-l-2 border-[#a33d35] bg-[#fff2f0] px-3 py-2 text-sm text-[#812c27]">
                           Some numbers in this summary could not be found in the
                           stored source text. Check them against the source
                           before approval.
+                        </p>
+                      ) : null}
+                      {!hasVerificationFailure(story.verification) &&
+                      !hasPassedNumberCheck(story.verification) ? (
+                        <p className="mt-3 border-l-2 border-[#b76b23] bg-[#fff7e9] px-3 py-2 text-sm text-[#704719]">
+                          The number check against trusted source text has not
+                          passed. This story cannot be approved.
                         </p>
                       ) : null}
                       {story.rejectReason ? (
@@ -114,9 +160,9 @@ export function StoryBoard({
                       ) : null}
                       {story.isAiRelated === false ? (
                         <p className="mt-3 text-sm text-[#8e443c]">
-                          AI marked this story as outside the magazine scope.
-                          Check the source and update its AI relevance before
-                          approving it.
+                          Gemini marked this story outside the magazine’s AI
+                          scope. Reject it or wait for new source evidence to
+                          trigger another AI check.
                         </p>
                       ) : null}
                     </div>
@@ -132,18 +178,8 @@ export function StoryBoard({
                           <Button
                             type="submit"
                             className="min-h-10 px-4 text-xs"
-                            disabled={
-                              !story.summary?.trim() ||
-                              !story.section ||
-                              story.isAiRelated === false
-                            }
-                            title={
-                              !story.summary?.trim() || !story.section
-                                ? "Add a summary and choose a section before approval."
-                                : story.isAiRelated === false
-                                  ? "Check the AI relevance in Edit story details first."
-                                  : undefined
-                            }
+                            disabled={Boolean(approvalBlockReason(story))}
+                            title={approvalBlockReason(story)}
                           >
                             {siteCopy.desk.approve}
                           </Button>
@@ -240,23 +276,6 @@ export function StoryBoard({
                               {item.label}
                             </option>
                           ))}
-                        </select>
-                      </label>
-                      <label className="text-sm font-medium">
-                        AI relevance
-                        <select
-                          name="aiRelated"
-                          required
-                          defaultValue={
-                            story.isAiRelated === null
-                              ? "unknown"
-                              : String(story.isAiRelated)
-                          }
-                          className="border-line bg-paper mt-2 min-h-11 w-full rounded border px-3 font-normal"
-                        >
-                          <option value="unknown">Not checked</option>
-                          <option value="true">AI related</option>
-                          <option value="false">Not AI related</option>
                         </select>
                       </label>
                       <Button type="submit" className="w-fit">

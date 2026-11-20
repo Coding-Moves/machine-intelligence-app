@@ -1,8 +1,11 @@
 # RSS ingestion
 
-The scheduled ingest route reads active sources from Supabase, accepts only HTTPS
+The scheduled ingest route reads active, explicitly trusted sources from Supabase, accepts only HTTPS
 article links on each source's own domain, and keeps article text private in the
-editor database. It uses the text supplied by a feed first. When a source allows
+editor database. It checks every valid item returned by each feed within the
+30-day recent window, then keeps only items published since the current issue
+window began. Newly seen items without a feed date are kept for review. It uses
+the text supplied by a feed first. When a source allows
 page extraction and the feed only has a short excerpt, it checks `robots.txt`
 before using Mozilla Readability. Requests have DNS/IP checks, same-origin
 redirects, response-size limits, timeouts, and the publisher's crawl delay.
@@ -19,7 +22,9 @@ recent entries:
 | arXiv cs.AI | <https://export.arxiv.org/rss/cs.AI> | Uses the abstract in the feed; article-page fetching is disabled.              |
 | arXiv cs.CL | <https://export.arxiv.org/rss/cs.CL> | Uses the abstract in the feed; article-page fetching is disabled.              |
 
-The arXiv feeds share one host. The fetcher obeys their published crawl delay,
+These four feeds form the initial trusted-source allowlist. New feed rows are
+excluded until an admin explicitly marks them trusted. The arXiv feeds share one
+host. The fetcher obeys their published crawl delay,
 so a run pauses between those feed requests.
 
 ## Feeds left out
@@ -45,14 +50,26 @@ hashed with SHA-256. A unique database constraint prevents repeat imports. The
 database function inserts the article and its story link in one transaction.
 
 The ingest route groups stories by a conservative title-token match within five
-days. If `GEMINI_API_KEY` is configured, it summarizes and scores up to 12
-pending candidate stories per run. The numeric claim check flags numbers in the
-summary or key facts that do not appear in the collected source text; it does
-not replace an editor's source review. Without the key, stories remain available
-for manual editing and review. Short RSS excerpts are retained as fallbacks
-when a publisher does not permit page extraction.
+days. Gemini writes source-grounded summaries, links key facts to the evidence
+article, assigns an AI section and relevance scores, and marks stories that are
+not about AI. A code check flags numbers in the summary or key facts that do not
+appear in the trusted source text. This catches unsupported numeric claims; it
+does not prove every sentence, so an editor must still read the source links and
+approve or reject each AI story. RSS excerpts with at least 100 characters are
+used as fallbacks when page extraction is unavailable. Shorter items are
+reported as incomplete source coverage, retried by a later scheduled run, and
+keep publishing locked until Gemini has enough text to review them.
 
-The GitHub Actions workflow runs at 01:00, 08:00, and 15:00 UTC. It calls the
-route with `APP_URL` and `CRON_SECRET`; the route uses the server-side Supabase
-service-role key. Each run records counts, source errors, and extraction
-warnings in `public.runs`.
+Gemini checks up to six pending stories per run. The twice-daily schedule can
+leave a queue when feeds are especially busy; the publish checklist blocks the
+issue until every pending AI check and editor decision is complete. A successful
+full pass across all trusted feeds is also required in each issue cycle. The
+latest ingest attempt in the cycle must succeed; a newer partial or failed pass
+keeps publishing locked until the feeds are checked successfully again.
+
+GitHub Actions runs at 03:00 and 15:00 UTC (08:00 and 20:00 Pakistan time). It
+calls the route with `APP_URL` and `CRON_SECRET`; the route uses the server-side
+Supabase service-role key. Each run records counts, source errors, and extraction
+warnings in `public.runs`. After each scheduled ingest attempt, another workflow
+downloads the current private TeX source with a short-lived signed URL, compiles
+the magazine, uploads the PDF to private draft storage, and records the result.

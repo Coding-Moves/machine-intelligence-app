@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  filterArticlesToIssueWindow,
   isAllowedSourceUrl,
   normalizeArticleUrl,
   parseFeed,
@@ -68,6 +69,32 @@ test("RSS parsing strips markup, rejects off-domain links, and skips old entries
   );
   assert.equal(articles[0].rssText.includes("bad()"), false);
   assert.equal(articles[0].urlHash.length, 64);
+});
+
+test("RSS parsing checks every recent feed item instead of stopping after ten", async () => {
+  const items = Array.from({ length: 12 }, (_, index) => {
+    const number = index + 1;
+    return `<item><title>AI update ${number}</title><link>https://news.example.test/story/${number}</link><pubDate>${new Date().toUTCString()}</pubDate><description>Research teams shared a new update with enough detail for an editor to review it.</description></item>`;
+  }).join("");
+  const xml = `<?xml version="1.0"?><rss version="2.0"><channel><title>Example</title>${items}</channel></rss>`;
+  const articles = await parseFeed(xml, source);
+
+  assert.equal(articles.length, 12);
+  assert.equal(articles.at(-1)?.url, "https://news.example.test/story/12");
+});
+
+test("an issue only imports articles from its cycle, while retaining undated new items", () => {
+  const windowStart = "2026-11-01T00:00:00.000Z";
+  const articles = [
+    { publishedAt: "2026-10-31T23:59:59.000Z" },
+    { publishedAt: windowStart },
+    { publishedAt: null },
+  ];
+
+  assert.deepEqual(filterArticlesToIssueWindow(articles, windowStart), [
+    articles[1],
+    articles[2],
+  ]);
 });
 
 test("title grouping matches close recent headlines but excludes old or published stories", () => {

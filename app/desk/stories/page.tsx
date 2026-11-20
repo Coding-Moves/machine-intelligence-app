@@ -36,7 +36,11 @@ export default async function StoriesPage() {
     ...new Set((articles ?? []).map((article) => article.source_id)),
   ];
   const { data: sources, error: sourceError } = sourceIds.length
-    ? await admin.from("sources").select("id, name").in("id", sourceIds)
+    ? await admin
+        .from("sources")
+        .select("id, name")
+        .in("id", sourceIds)
+        .eq("trusted", true)
     : { data: [], error: null };
   if (sourceError) throw new Error("Could not load story source names.");
   const sourceNames = new Map(

@@ -49,7 +49,7 @@ Review the migration plan, then apply the schema:
 npx supabase db push --remote
 ```
 
-The migrations create the editor, edition, run, source, article, story, and image tables; enable pgvector; apply row-level security; create the public issues and private drafts storage buckets; seed the initial verified RSS sources; and ensure there is one current draft edition. The ingest migration adds a service-role-only database function that stores each article and its story link atomically.
+The migrations create the editor, edition, run, source, article, story, and image tables; enable pgvector; apply row-level security; create the public issues and private drafts storage buckets; seed the initial RSS sources; mark only the four reviewed feeds as trusted; and ensure there is one current draft edition. The ingest migration adds a service-role-only database function that stores each article and its story link atomically. The guarded publication migration enforces the 14-day minimum and editorial checklist inside one transaction. The artifact revision migration invalidates the saved TeX/PDF when approved story content, the template, or the editor's note changes, and prevents an older in-progress build from becoming publishable.
 
 The May LaTeX reference uses the committed `latex/reference/cover-placeholder.png`. Keep real cover art in Supabase Storage's `issues` bucket and only use artwork the project has permission to publish.
 
@@ -110,7 +110,7 @@ You can generate a local cron secret with:
 openssl rand -hex 32
 ```
 
-Set `GEMINI_API_KEY` in Vercel Production if you want the ingest route to summarize and score new stories and the draft builder to arrange approved stories and draft an editor note. The editable template's section slot counts guide Gemini's layout; if a section has more approved stories than slots, the model uses brief presentation for overflow and keeps every approved story. `WRITER_MODEL` and `DESIGNER_MODEL` are optional model overrides; when blank, both use Google's stable `gemini-3.8-flash` model. Do not put the Gemini key in GitHub or the browser. `GITHUB_DISPATCH_TOKEN` is reserved for future PDF compilation and is not used yet. `APP_URL` is used by the GitHub Actions workflow, not by the web app.
+Set `GEMINI_API_KEY` in Vercel Production for the ingest route to summarize and score stories and for the draft builder to arrange approved stories and draft the editor note. Without it, new stories remain in the queue and publishing stays blocked. The editable template's section slot counts guide Gemini's layout; if a section has more approved stories than slots, the model uses brief presentation for overflow and keeps every approved story. `WRITER_MODEL` and `DESIGNER_MODEL` are optional model overrides; when blank, both use Google's configured default. Do not put the Gemini key in GitHub or the browser. `APP_URL` is used by GitHub Actions, not by the web app.
 
 ## 5. Deploy the app to Vercel
 
@@ -136,15 +136,15 @@ In the repository, open Settings → Secrets and variables → Actions and add t
 - APP_URL: the deployed app URL, with no trailing slash
 - CRON_SECRET: the same value configured in Vercel
 
-The ingest workflow sends only the cron request. The web app uses its server-only Supabase service-role key to fetch feeds, store articles and stories, and write the run record. The LaTeX reference-check workflow needs no secrets.
+The ingest workflow sends only the cron request. The web app uses its server-only Supabase service-role key to fetch feeds, store articles and stories, and write the run record. The compile workflow uses short-lived signed storage URLs and needs only the same `APP_URL` and `CRON_SECRET`; it does not need Supabase keys or a GitHub dispatch token.
 
 The workflows are available under the repository Actions tab:
 
 - CI runs lint, typecheck, and build for pull requests and pushes to main.
-- Scheduled ingest runs at 01:00, 08:00, and 15:00 UTC, which is 06:00, 13:00, and 20:00 in Pakistan. It can also be started with workflow_dispatch.
+- Scheduled ingest runs at 03:00 and 15:00 UTC, which is 08:00 and 20:00 in Pakistan. A workflow compiles the current draft PDF after each ingest attempt. Publishing requires the latest pass to succeed across the current trusted-source list. Ingest can also be started with workflow_dispatch.
 - LaTeX check compiles the May reference and a generated special-character magazine fixture when LaTeX or renderer files change. It stores the reference PDF as an artifact.
 
-If APP_URL is empty, the scheduled ingest workflow records a notice and exits without sending a request.
+Make sure GitHub's `CRON_SECRET` exactly matches Vercel Production's `CRON_SECRET`; a mismatch returns HTTP 401 and stops ingest. Never paste the value into chat. After applying migrations and deploying, run Scheduled ingest once from Actions and check its result and the Compile current magazine draft workflow. `public.runs` should show `ok = true`, and the Draft page should have a current PDF preview.
 
 ## 7. Foundation route map
 
@@ -155,17 +155,18 @@ If APP_URL is empty, the scheduled ingest workflow records a notice and exits wi
 - /how-its-made — editorial process and source policy
 - /privacy — privacy note
 - /login — Supabase email-and-password sign-in for allowlisted editors
-- /desk — editable issue template and editor note, AI layout rebuild, and private TeX download
-- /desk/stories — live story review from Supabase; approval requires a summary and section
+- /desk — editable issue template and editor note, AI layout rebuild, private TeX/PDF preview, and a 14-day gated publish checklist
+- /desk/stories — live story review from Supabase; approval requires a summary, section, Gemini AI confirmation, and a clear numeric claim check
 - /desk/quarantine — live rejected stories from Supabase
-- /desk/sources — read-only list of configured feed URLs and publisher details
+- /desk/sources — read-only list of configured feed URLs, trust status, and publisher details
 - /desk/images — upload control reserved for a later phase
 - /desk/issues — editions in Supabase
 - /desk/editors — admin-only editor list and real add/remove actions
 - /api/health — public health response
-- /api/cron/ingest — authenticated RSS collection, safe article extraction, URL deduplication, title grouping, and optional Gemini summary/scoring
+- /api/cron/ingest — authenticated collection from trusted feeds, safe article extraction, URL deduplication, title grouping, and Gemini evidence-based summary/scoring
+- /api/cron/compile/prepare — authenticated short-lived TeX download and PDF upload URLs for GitHub Actions
 - /api/compile/callback — authenticated compile-status callback that records the PDF path and run result
 
-## 8. What is not active yet
+## 8. Current editorial and publishing behavior
 
-RSS ingestion stores articles and candidate stories in Supabase. When `GEMINI_API_KEY` is configured, it also drafts a source-based summary, assigns a section and score, and flags unsupported numbers for editor review. Stories and quarantine are live database views. The draft builder uses approved stories only, validates Gemini's layout JSON, fits all stories to the editable section targets using brief presentation for overflow, preserves the editable masthead and editor note, and writes TeX into private storage. An editor must review and approve the note and verify story claims. PDF compilation and publishing editions to the public archive are not yet connected; source and image administration pages remain limited.
+RSS ingestion stores trusted-source articles and candidate stories in Supabase. Gemini drafts evidence-based summaries, assigns a section and score, and flags unsupported numbers. Editors must still read the source links and approve or reject each AI-related candidate. The draft builder validates Gemini's layout JSON and places every approved story in the editable section template. GitHub Actions compiles the current private PDF after each scheduled ingest attempt. The publish control remains disabled until 14 days have passed, the latest full-feed scan succeeded for the current trusted-source list, all current AI checks and editor decisions are complete, every approved story is in the issue, all stories have trusted evidence and passed numeric checks, the editor note is approved, and the PDF matches the current TeX source. Publishing is then enforced by a service-role-only database function and creates the next draft.

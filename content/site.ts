@@ -40,7 +40,7 @@ export const siteCopy = {
       {
         number: "01",
         title: "Sources are gathered",
-        text: "The newsroom collects reports from trusted newsrooms, research groups, public institutions, and AI labs.",
+        text: "Twice a day, the newsroom checks feeds that have been reviewed and marked trusted. New feeds stay out until an editor verifies them.",
       },
       {
         number: "02",
@@ -50,7 +50,7 @@ export const siteCopy = {
       {
         number: "03",
         title: "The issue is reviewed",
-        text: "Software helps prepare the draft. Student editors and the Head of Department review the issue before publication.",
+        text: "Gemini arranges the approved stories into a full draft. Editors review the stories and note, and the issue stays in draft for at least 14 days before it can be published.",
       },
     ],
     closeEyebrow: "For the next generation of builders",
@@ -105,7 +105,7 @@ export const siteCopy = {
       {
         number: "01",
         title: "Collect trusted reporting",
-        text: "The newsroom checks feeds and pages from approved newsrooms, research groups, public institutions, and AI labs. Each story links back to its source.",
+        text: "Twice a day, the newsroom checks feeds from publishers and research groups that have been reviewed and marked trusted. New feeds are excluded until an admin verifies them. Each story links back to its evidence.",
       },
       {
         number: "02",
@@ -115,7 +115,7 @@ export const siteCopy = {
       {
         number: "03",
         title: "Build and review the issue",
-        text: "AI can suggest the order and presentation of approved stories and draft an editor's note. Editors review the layout and note, check every story, and decide what may be published.",
+        text: "Gemini suggests the order and presentation of approved stories and drafts an editor's note. Editors review the layout and note, check every story, and decide what may be published. An issue stays in draft for at least 14 days, and publication is blocked while any AI check, editor decision, or PDF build is unfinished.",
       },
     ],
     ruleTitle: "The source rule",
@@ -138,7 +138,7 @@ export const siteCopy = {
       "Published issue files may be publicly available. Draft files are kept in private storage for editors.",
     aiTitle: "AI-assisted editing",
     aiText:
-      "When enabled, source article text may be sent to Google's Gemini API to draft summaries and scores. Approved story summaries and key facts may be sent to suggest an issue layout and draft an editor's note. Editors review this work before publication. Gemini is optional; without it, the app uses a score-based layout and editors write summaries and notes themselves.",
+      "Trusted source article text may be sent to Google's Gemini API to draft summaries and scores. Approved story summaries and key facts may be sent to suggest an issue layout and draft an editor's note. Gemini results are checked for unsupported numbers, then editors review the sources and make all approval and publication decisions. Without a Gemini API key, new items remain queued and the issue cannot pass its publication checks.",
     contactTitle: "Questions",
     contactText:
       "For a privacy question, contact the editorial team through the repository's issue tracker.",
@@ -189,21 +189,22 @@ export const siteCopy = {
     draftTitle: "Draft issue",
     lastUpdated: "Built from the latest approved stories",
     rebuild: "Rebuild magazine",
-    downloadPdf: "PDF export is not connected yet",
+    downloadPdf: "Download the current draft PDF",
     downloadOverleaf: "Overleaf export is not connected yet",
-    publish: "Publishing is not connected yet",
+    publish: "Publish issue",
     comingSoon: "Image upload is not connected yet",
     preview: "PDF preview",
-    previewEmpty: "PDF compilation is not connected yet.",
+    previewEmpty:
+      "The current draft PDF is waiting for its next successful compile.",
     storiesTitle: "Stories",
     storiesIntro:
-      "Review live stories collected from the configured feeds. Approve a story only after checking its sources.",
+      "Review stories from trusted feeds. Approve a story only after Gemini confirms it is AI-related, the number check passes, and you have checked its trusted source.",
     quarantineTitle: "Quarantine",
     quarantineIntro:
       "Rejected stories stay out of the draft. Restore one to return it to the review list.",
     sourcesTitle: "Sources",
     sourcesIntro:
-      "These feeds are configured for scheduled collection. Review each publisher's source before approving a story.",
+      "Only feeds marked trusted are collected twice a day. Ask the admin to verify a new publisher before adding its feed to the trusted list.",
     imagesTitle: "Images",
     imagesIntro: "Manage images approved for use in a magazine issue.",
     issuesTitle: "Issues",

@@ -26,6 +26,7 @@ export function SourcesTable({ sources }: { sources: Source[] }) {
             <th className="py-3 pr-4 font-medium">
               {siteCopy.desk.trustWeight}
             </th>
+            <th className="py-3 pr-4 font-medium">AI pipeline</th>
             <th className="py-3 font-medium">{siteCopy.desk.activeSource}</th>
           </tr>
         </thead>
@@ -67,6 +68,9 @@ export function SourcesTable({ sources }: { sources: Source[] }) {
               </td>
               <td className="text-muted py-4 pr-4">
                 {source.trustWeight.toFixed(1)}
+              </td>
+              <td className="text-muted py-4 pr-4">
+                {source.trusted ? "Trusted source" : "Excluded from ingestion"}
               </td>
               <td className="text-muted py-4">
                 {source.active

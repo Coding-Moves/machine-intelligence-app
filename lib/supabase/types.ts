@@ -27,6 +27,7 @@ export interface Database {
           region: SourceRegion;
           kind: SourceKind;
           trust_weight: number;
+          trusted: boolean;
           fetch_full_text: boolean;
           active: boolean;
           created_at: string;
@@ -39,6 +40,7 @@ export interface Database {
           region: SourceRegion;
           kind: SourceKind;
           trust_weight?: number;
+          trusted?: boolean;
           fetch_full_text?: boolean;
           active?: boolean;
           created_at?: string;
@@ -51,6 +53,7 @@ export interface Database {
           region?: SourceRegion;
           kind?: SourceKind;
           trust_weight?: number;
+          trusted?: boolean;
           fetch_full_text?: boolean;
           active?: boolean;
           created_at?: string;
@@ -253,11 +256,14 @@ export interface Database {
           window_start: string | null;
           layout: Json;
           tex_path: string | null;
+          tex_hash: string | null;
           pdf_path: string | null;
+          pdf_tex_hash: string | null;
           cover_path: string | null;
           in_this_issue: string[];
           editor_note: string | null;
           editor_note_approved: boolean;
+          draft_revision: number;
           created_at: string;
           published_at: string | null;
         };
@@ -269,11 +275,14 @@ export interface Database {
           window_start?: string | null;
           layout?: Json;
           tex_path?: string | null;
+          tex_hash?: string | null;
           pdf_path?: string | null;
+          pdf_tex_hash?: string | null;
           cover_path?: string | null;
           in_this_issue?: string[];
           editor_note?: string | null;
           editor_note_approved?: boolean;
+          draft_revision?: number;
           created_at?: string;
           published_at?: string | null;
         };
@@ -285,11 +294,14 @@ export interface Database {
           window_start?: string | null;
           layout?: Json;
           tex_path?: string | null;
+          tex_hash?: string | null;
           pdf_path?: string | null;
+          pdf_tex_hash?: string | null;
           cover_path?: string | null;
           in_this_issue?: string[];
           editor_note?: string | null;
           editor_note_approved?: boolean;
+          draft_revision?: number;
           created_at?: string;
           published_at?: string | null;
         };
@@ -335,6 +347,30 @@ export interface Database {
     Views: Record<string, never>;
     Functions: {
       is_editor: { Args: Record<PropertyKey, never>; Returns: boolean };
+      publish_draft_edition: {
+        Args: { p_edition_id: string };
+        Returns: string;
+      };
+      invalidate_draft_edition_artifacts: {
+        Args: { p_edition_id: string };
+        Returns: number;
+      };
+      save_draft_edition_template: {
+        Args: {
+          p_edition_id: string;
+          p_title: string;
+          p_template: Json;
+        };
+        Returns: string;
+      };
+      save_draft_edition_editor_note: {
+        Args: {
+          p_edition_id: string;
+          p_editor_note: string;
+          p_approved: boolean;
+        };
+        Returns: string;
+      };
       store_ingested_article: {
         Args: {
           p_source_id: string;
