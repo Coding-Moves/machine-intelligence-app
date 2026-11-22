@@ -70,6 +70,7 @@ export interface Database {
           section: StorySection | null;
           ai_importance: number | null;
           ai_pakistan_relevance: number | null;
+          editorial_reason: string | null;
           is_ai_related: boolean | null;
           final_score: number | null;
           status: StoryStatus;
@@ -90,6 +91,7 @@ export interface Database {
           section?: StorySection | null;
           ai_importance?: number | null;
           ai_pakistan_relevance?: number | null;
+          editorial_reason?: string | null;
           is_ai_related?: boolean | null;
           final_score?: number | null;
           status?: StoryStatus;
@@ -110,6 +112,7 @@ export interface Database {
           section?: StorySection | null;
           ai_importance?: number | null;
           ai_pakistan_relevance?: number | null;
+          editorial_reason?: string | null;
           is_ai_related?: boolean | null;
           final_score?: number | null;
           status?: StoryStatus;
