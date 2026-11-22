@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import test from "node:test";
 import { escapeTex } from "../lib/magazine/escape.ts";
 import { renderMagazineTex } from "../lib/magazine/render.ts";
@@ -97,5 +97,13 @@ test("magazine renderer escapes hostile story text and keeps notes clearly label
   assert.match(tex, /50\\% \\& tested/);
   if (process.env.WRITE_LATEX_SMOKE === "1") {
     await writeFile("latex/generated-render-smoke.tex", tex, "utf8");
+    await mkdir("latex/images", { recursive: true });
+    await writeFile(
+      `latex/images/${storyId}.png`,
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p7sAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    );
   }
 });
