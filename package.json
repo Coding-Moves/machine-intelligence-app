@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test:ingest": "node --experimental-strip-types --test tests/ingest.test.mjs tests/scoring.test.mjs",
     "test:magazine": "node --experimental-strip-types --test tests/magazine-layout.test.mjs tests/magazine-render.test.mjs tests/publication-readiness.test.mjs",
+    "ingest:once": "node --conditions=react-server --import tsx scripts/ingest-once.ts",
     "format": "prettier --write .",
     "db:types": "supabase gen types typescript --local > lib/supabase/types.ts"
   },
@@ -43,6 +44,7 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "supabase": "^3.2.0",
     "tailwindcss": "^4.3.5",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.2"
   }
