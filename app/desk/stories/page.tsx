@@ -79,12 +79,22 @@ export default async function StoriesPage() {
     string,
     { url: string; approved: boolean; credit: string }
   >();
-  for (const image of images ?? []) {
-    if (!image.story_id || imageByStory.has(image.story_id)) continue;
-    const { data: signed } = await admin.storage
-      .from("drafts")
-      .createSignedUrl(image.storage_path, 3600);
-    if (!signed?.signedUrl) continue;
+  const imageByPath = new Map(
+    (images ?? []).map((image) => [image.storage_path, image]),
+  );
+  const { data: signedImages, error: signedImagesError } = images?.length
+    ? await admin.storage
+        .from("drafts")
+        .createSignedUrls(
+          images.map((image) => image.storage_path),
+          3600,
+        )
+    : { data: [], error: null };
+  if (signedImagesError) throw new Error("Could not sign story illustrations.");
+  for (const signed of signedImages ?? []) {
+    if (!signed.path || !signed.signedUrl || signed.error) continue;
+    const image = imageByPath.get(signed.path);
+    if (!image?.story_id || imageByStory.has(image.story_id)) continue;
     imageByStory.set(image.story_id, {
       url: signed.signedUrl,
       approved: image.approved,

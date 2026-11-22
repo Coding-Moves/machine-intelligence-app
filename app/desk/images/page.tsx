@@ -37,17 +37,23 @@ export default async function ImagesPage() {
   if (storyError) throw new Error("Could not load illustration story details.");
   const storyById = new Map((stories ?? []).map((story) => [story.id, story]));
 
-  const illustrations = await Promise.all(
-    (rows ?? []).map(async (image) => {
-      const { data } = await admin.storage
+  const { data: signedImages, error: signedImagesError } = rows?.length
+    ? await admin.storage
         .from("drafts")
-        .createSignedUrl(image.storage_path, 3600);
-      return data?.signedUrl ? { ...image, url: data.signedUrl } : null;
-    }),
+        .createSignedUrls(
+          rows.map((image) => image.storage_path),
+          3600,
+        )
+    : { data: [], error: null };
+  if (signedImagesError) throw new Error("Could not sign illustration previews.");
+  const imageByPath = new Map(
+    (rows ?? []).map((image) => [image.storage_path, image]),
   );
-  const visible = illustrations.filter(
-    (image): image is NonNullable<typeof image> => image !== null,
-  );
+  const visible = (signedImages ?? []).flatMap((signed) => {
+    if (!signed.path || !signed.signedUrl || signed.error) return [];
+    const image = imageByPath.get(signed.path);
+    return image ? [{ ...image, url: signed.signedUrl }] : [];
+  });
 
   return (
     <Section>
