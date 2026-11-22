@@ -53,6 +53,7 @@ test("magazine renderer escapes hostile story text and keeps notes clearly label
         summary:
           "The report says 50% and includes {editor} text with $values_1$.",
         section: "pakistan",
+        imagePath: `images/${storyId}.png`,
         finalScore: 8,
         keyFacts: [{ label: "Result", value: "50% & tested" }],
         sources: [
@@ -69,6 +70,7 @@ test("magazine renderer escapes hostile story text and keeps notes clearly label
         summary:
           "This story is rendered as a brief because the section target is one.",
         section: "pakistan",
+        imagePath: "../../secret.tex",
         finalScore: 5,
         keyFacts: [],
         sources: [],
@@ -82,6 +84,11 @@ test("magazine renderer escapes hostile story text and keeps notes clearly label
   assert.match(tex, /Machine Intelligence/);
   assert.match(tex, /Academic supervision/);
   assert.match(tex, /Dr\. Example/);
+  assert.match(
+    tex,
+    new RegExp(`\\\\includegraphics\\[[^\\]]+\\]\\{images/${storyId}\\.png\\}`),
+  );
+  assert.doesNotMatch(tex, /secret\.tex/);
   assert.match(tex, /APPROVED STORIES OVER SLOT TARGET/);
   assert.match(tex, /A second approved story/);
   assert.match(tex, /\\small This story is rendered as a brief/);

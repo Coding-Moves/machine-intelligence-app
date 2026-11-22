@@ -13,6 +13,7 @@ import { findMatchingStory, fingerprintTitle } from "@/lib/ingest/cluster";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import { enrichPendingStories } from "@/lib/ingest/enrich";
+import { generateMissingStoryIllustrations } from "@/lib/ingest/illustrations";
 import { rebuildMagazineDraft } from "@/lib/magazine/build";
 
 const MAX_FULL_TEXT_REQUESTS_PER_SOURCE = 2;
@@ -250,6 +251,7 @@ export async function runIngest() {
     }
 
     let enrichedStories = 0;
+    let generatedImages = 0;
     let aiWarning: string | null = null;
     try {
       const enriched = await enrichPendingStories(supabase);
@@ -260,6 +262,22 @@ export async function runIngest() {
     } catch (error) {
       aiWarning = getErrorMessage(error);
       warnings.push({ source: "AI story writer", message: aiWarning });
+    }
+
+    try {
+      const illustrations = await generateMissingStoryIllustrations(supabase);
+      generatedImages = illustrations.generatedImages;
+      if (illustrations.imageWarning) {
+        warnings.push({
+          source: "AI illustrations",
+          message: illustrations.imageWarning,
+        });
+      }
+    } catch (error) {
+      warnings.push({
+        source: "AI illustrations",
+        message: getErrorMessage(error),
+      });
     }
 
     let draft: Awaited<ReturnType<typeof rebuildMagazineDraft>> | null = null;
@@ -290,6 +308,7 @@ export async function runIngest() {
       newArticles,
       newStories,
       enrichedStories,
+      generatedImages,
       duplicateArticles,
       skippedShortItems,
       storiesQueuedForEnrichment: storiesToEnrich.size,

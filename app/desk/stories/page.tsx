@@ -3,6 +3,7 @@ import { StoryBoard, type StoryReview } from "@/components/story-board";
 import { Section } from "@/components/ui/section";
 import { siteCopy } from "@/content/site";
 import { requireEditor } from "@/lib/auth/require-editor";
+import { calculateScoreBreakdown } from "@/lib/ingest/scoring";
 import { getDraftEdition } from "@/lib/magazine/build";
 import {
   defaultMagazineTemplate,
@@ -18,7 +19,7 @@ export default async function StoriesPage() {
   const { data: rows, error } = await admin
     .from("stories")
     .select(
-      "id, headline, summary, section, status, final_score, reject_reason, verification, is_ai_related",
+      "id, headline, summary, section, status, final_score, reject_reason, verification, is_ai_related, ai_importance, ai_pakistan_relevance, editorial_reason, first_seen_at",
     )
     .in("status", ["candidate", "approved"])
     .order("final_score", { ascending: false, nullsFirst: false });
@@ -38,24 +39,57 @@ export default async function StoriesPage() {
   const { data: sources, error: sourceError } = sourceIds.length
     ? await admin
         .from("sources")
-        .select("id, name")
+        .select("id, name, trust_weight")
         .in("id", sourceIds)
         .eq("trusted", true)
     : { data: [], error: null };
   if (sourceError) throw new Error("Could not load story source names.");
   const sourceNames = new Map(
-    (sources ?? []).map((source) => [source.id, source.name]),
+    (sources ?? []).map((source) => [
+      source.id,
+      { name: source.name, trustWeight: Number(source.trust_weight) },
+    ]),
   );
   const articlesByStory = new Map<string, StoryReview["sources"]>();
   for (const article of articles ?? []) {
     if (!article.story_id) continue;
+    const source = sourceNames.get(article.source_id);
+    if (!source) continue;
     const values = articlesByStory.get(article.story_id) ?? [];
     values.push({
       id: article.id,
-      name: sourceNames.get(article.source_id) ?? "Source",
+      sourceId: article.source_id,
+      name: source.name,
+      trustWeight: source.trustWeight,
       url: article.url,
     });
     articlesByStory.set(article.story_id, values);
+  }
+
+  const { data: images, error: imageError } = storyIds.length
+    ? await admin
+        .from("images")
+        .select("id, story_id, storage_path, approved, credit")
+        .in("story_id", storyIds)
+        .eq("license", "own")
+        .order("created_at", { ascending: false })
+    : { data: [], error: null };
+  if (imageError) throw new Error("Could not load story illustrations.");
+  const imageByStory = new Map<
+    string,
+    { url: string; approved: boolean; credit: string }
+  >();
+  for (const image of images ?? []) {
+    if (!image.story_id || imageByStory.has(image.story_id)) continue;
+    const { data: signed } = await admin.storage
+      .from("drafts")
+      .createSignedUrl(image.storage_path, 3600);
+    if (!signed?.signedUrl) continue;
+    imageByStory.set(image.story_id, {
+      url: signed.signedUrl,
+      approved: image.approved,
+      credit: image.credit,
+    });
   }
 
   const stories: StoryReview[] = (rows ?? []).map((story) => ({
@@ -66,9 +100,31 @@ export default async function StoriesPage() {
     status: story.status,
     isAiRelated: story.is_ai_related,
     finalScore: story.final_score,
+    editorialReason: story.editorial_reason,
+    scoreBreakdown:
+      story.ai_importance !== null && story.ai_pakistan_relevance !== null
+        ? calculateScoreBreakdown({
+            importance: story.ai_importance,
+            pakistanRelevance: story.ai_pakistan_relevance,
+            distinctSources: new Set(
+              articlesByStory.get(story.id)?.map((source) => source.sourceId) ??
+                [],
+            ).size,
+            firstSeenAt: story.first_seen_at,
+            trustWeights: [
+              ...new Map(
+                (articlesByStory.get(story.id) ?? []).map((source) => [
+                  source.sourceId,
+                  source.trustWeight,
+                ]),
+              ).values(),
+            ],
+          })
+        : null,
     rejectReason: story.reject_reason,
     verification: story.verification,
     sources: articlesByStory.get(story.id) ?? [],
+    image: imageByStory.get(story.id) ?? null,
   }));
   const draft = await getDraftEdition();
   const template = draft

@@ -12,20 +12,22 @@ redirects, response-size limits, timeouts, and the publisher's crawl delay.
 
 ## Seed feeds
 
-These feeds were checked on 18 November 2026. Each returned parseable RSS with
-recent entries:
+The official [arXiv RSS documentation](https://github.com/arXiv/arxiv-docs/blob/develop/source/help/rss.md)
+specifies the `rss.arxiv.org` feed host. We verified the two category feeds
+returned HTTP 200 on 22 November 2026 after the old export host rejected
+scheduled requests:
 
-| Source      | Feed                                 | Article text behavior                                                          |
-| ----------- | ------------------------------------ | ------------------------------------------------------------------------------ |
-| Dawn        | <https://www.dawn.com/feeds/home>    | Uses the article text included in the feed.                                    |
-| OpenAI News | <https://openai.com/news/rss.xml>    | Uses feed text, then tries the article page when the feed only has an excerpt. |
-| arXiv cs.AI | <https://export.arxiv.org/rss/cs.AI> | Uses the abstract in the feed; article-page fetching is disabled.              |
-| arXiv cs.CL | <https://export.arxiv.org/rss/cs.CL> | Uses the abstract in the feed; article-page fetching is disabled.              |
+| Source      | Feed                              | Article text behavior                                                          |
+| ----------- | --------------------------------- | ------------------------------------------------------------------------------ |
+| Dawn        | <https://www.dawn.com/feeds/home> | Uses the article text included in the feed.                                    |
+| OpenAI News | <https://openai.com/news/rss.xml> | Uses feed text, then tries the article page when the feed only has an excerpt. |
+| arXiv cs.AI | <https://rss.arxiv.org/rss/cs.AI> | Uses the abstract in the feed; article-page fetching is disabled.              |
+| arXiv cs.CL | <https://rss.arxiv.org/rss/cs.CL> | Uses the abstract in the feed; article-page fetching is disabled.              |
 
 These four feeds form the initial trusted-source allowlist. New feed rows are
 excluded until an admin explicitly marks them trusted. The arXiv feeds share one
-host. The fetcher obeys their published crawl delay,
-so a run pauses between those feed requests.
+host. The fetcher waits at least three seconds between arXiv requests, including
+the `robots.txt` check, and respects any longer delay published by the host.
 
 ## Feeds left out
 
@@ -52,13 +54,32 @@ database function inserts the article and its story link in one transaction.
 The ingest route groups stories by a conservative title-token match within five
 days. Gemini writes source-grounded summaries, links key facts to the evidence
 article, assigns an AI section and relevance scores, and marks stories that are
-not about AI. A code check flags numbers in the summary or key facts that do not
-appear in the trusted source text. This catches unsupported numeric claims; it
-does not prove every sentence, so an editor must still read the source links and
-approve or reject each AI story. RSS excerpts with at least 100 characters are
-used as fallbacks when page extraction is unavailable. Shorter items are
-reported as incomplete source coverage, retried by a later scheduled run, and
-keep publishing locked until Gemini has enough text to review them.
+not about AI. Each story also gets a plain-language editorial assessment that
+states why it matters, what the available evidence supports, and any important
+limits.
+
+The priority score combines AI news value (35%), Pakistan relevance (25%),
+trusted-source coverage (20%), and freshness (20%), then adjusts it by the
+average trust weight of its sources. The editor desk shows these four values and
+the calculation. It is a sorting aid, not a fact-check or an approval decision.
+A code check flags numbers in the summary or key facts that do not appear in the
+trusted source text. This catches unsupported numeric claims; it does not prove
+every sentence, so an editor must still read the source links and approve or
+reject each AI story. RSS excerpts with at least 100 characters are used as
+fallbacks when page extraction is unavailable. Shorter items are reported as
+incomplete source coverage, retried by a later scheduled run, and keep
+publishing locked until Gemini has enough text to review them.
+
+For eligible AI stories, Gemini creates up to two original editorial
+illustrations per ingest run, starting with the highest-scoring stories that do
+not already have a publication-owned illustration. The illustration is stored
+in the private `drafts` bucket and appears in the editor's Images page as
+pending review. Only an editor-approved illustration enters the LaTeX issue;
+the PDF workflow downloads it through a short-lived signed URL and checks its
+file type and size. Generated art is labeled as an illustration, not as a real
+news photograph. The app does not copy a publisher's Open Graph image because a
+trusted news source does not by itself grant image reuse rights. Failed image
+generation stays queued for a later ingest run.
 
 Gemini checks up to six pending stories per run. The twice-daily schedule can
 leave a queue when feeds are especially busy; the publish checklist blocks the

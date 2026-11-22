@@ -7,6 +7,7 @@ import { sortPlanItems } from "./layout.ts";
 
 export type RenderStory = PlanStory & {
   sources: { name: string; url: string; publishedAt: string | null }[];
+  imagePath?: string;
 };
 
 const themeColors = {
@@ -156,8 +157,19 @@ function renderStory(story: RenderStory, presentation: string) {
     .filter(Boolean)
     .join("\\quad\\textbar\\quad ");
   const style = presentation === "brief" ? "\\small " : "";
+  const imagePath =
+    story.imagePath &&
+    /^images\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.png$/i.test(
+      story.imagePath,
+    )
+      ? story.imagePath
+      : null;
+  const image = imagePath
+    ? `\\begin{center}\\includegraphics[width=0.85\\linewidth,height=${presentation === "feature" ? "5.2cm" : "3.2cm"},keepaspectratio]{${imagePath}}\\par\\footnotesize AI-generated editorial illustration\\end{center}`
+    : "";
   return [
     `\\subsection*{${titleSize} ${escapeTex(story.headline)}}`,
+    image,
     `${style}${summary}`,
     factBlock,
     references

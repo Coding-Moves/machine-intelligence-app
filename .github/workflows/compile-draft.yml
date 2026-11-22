@@ -82,6 +82,9 @@ jobs:
           setOutput('pdf_path', data.pdfPath);
           setOutput('source_url', data.sourceUrl);
           setOutput('upload_url', data.pdfUploadUrl);
+          const images = Array.isArray(data.images) ? data.images : [];
+          for (const image of images) console.log(`::add-mask::${image.url}`);
+          setOutput('images_json', JSON.stringify(images));
           outputs.end();
           NODE
 
@@ -92,6 +95,49 @@ jobs:
         run: |
           mkdir -p magazine/build
           curl --fail --silent --show-error "$SOURCE_URL" --output magazine/build/edition.tex
+
+      - name: Download approved story illustrations
+        if: steps.prepare.outputs.ready == 'true'
+        env:
+          IMAGES_JSON: ${{ steps.prepare.outputs.images_json }}
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs/promises');
+          const path = require('node:path');
+          (async () => {
+            const images = JSON.parse(process.env.IMAGES_JSON || '[]');
+            const expectedOrigin = new URL(process.env.SUPABASE_URL).origin;
+            const directory = path.join('magazine', 'build', 'images');
+            await fs.mkdir(directory, { recursive: true });
+            const seen = new Set();
+            for (const image of images) {
+              if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(image.storyId)) {
+                throw new Error('An illustration has an invalid story ID.');
+              }
+              const url = new URL(image.url);
+              if (url.protocol !== 'https:' || url.origin !== expectedOrigin || !url.pathname.startsWith('/storage/v1/object/sign/drafts/')) {
+                throw new Error('An illustration link is outside private Supabase draft storage.');
+              }
+              if (seen.has(image.storyId)) continue;
+              seen.add(image.storyId);
+              const response = await fetch(url);
+              if (!response.ok || !response.headers.get('content-type')?.toLowerCase().startsWith('image/png')) {
+                throw new Error(`Illustration download returned HTTP ${response.status} or an unexpected type.`);
+              }
+              const bytes = Buffer.from(await response.arrayBuffer());
+              const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+              if (bytes.length < 32 || bytes.length > 8_000_000 || !bytes.subarray(0, 8).equals(pngSignature)) {
+                throw new Error('An illustration was invalid or exceeded the size limit.');
+              }
+              await fs.writeFile(path.join(directory, `${image.storyId}.png`), bytes, { flag: 'wx' });
+            }
+            console.log(`Downloaded ${seen.size} approved illustration(s).`);
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
 
       - name: Compile the magazine PDF
         id: latex

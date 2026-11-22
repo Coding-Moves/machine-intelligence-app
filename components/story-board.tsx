@@ -1,10 +1,14 @@
 import { saveStoryEdit, setStoryStatus } from "@/app/desk/actions";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusChip } from "@/components/ui/status-chip";
 import { siteCopy } from "@/content/site";
+import type { calculateScoreBreakdown } from "@/lib/ingest/scoring";
 import type { MagazineTemplate } from "@/lib/magazine/template";
 import type { StoryStatus, StorySection } from "@/lib/supabase/types";
+
+type ScoreBreakdown = ReturnType<typeof calculateScoreBreakdown>;
 
 export type StoryReview = {
   id: string;
@@ -14,9 +18,18 @@ export type StoryReview = {
   status: StoryStatus;
   isAiRelated: boolean | null;
   finalScore: number | null;
+  editorialReason: string | null;
+  scoreBreakdown: ScoreBreakdown | null;
   rejectReason: string | null;
   verification: unknown;
-  sources: { id: string; name: string; url: string }[];
+  sources: {
+    id: string;
+    sourceId: string;
+    name: string;
+    trustWeight: number;
+    url: string;
+  }[];
+  image: { url: string; approved: boolean; credit: string } | null;
 };
 
 function hasVerificationFailure(value: unknown) {
@@ -125,6 +138,94 @@ export function StoryBoard({
                         {story.summary ||
                           "No editor summary yet. Add one before approval."}
                       </p>
+                      {story.editorialReason ? (
+                        <div className="border-line mt-4 rounded-lg border bg-[#f4f7f4] p-4">
+                          <h4 className="text-leaf-dark text-xs font-semibold tracking-wide uppercase">
+                            AI editorial assessment
+                          </h4>
+                          <p className="mt-2 text-sm leading-6">
+                            {story.editorialReason}
+                          </p>
+                          <p className="text-muted mt-2 text-xs">
+                            This explains the model&apos;s assessment. It is not
+                            a fact-check or an approval decision.
+                          </p>
+                        </div>
+                      ) : null}
+                      {story.scoreBreakdown ? (
+                        <details className="border-line mt-3 max-w-3xl rounded border bg-white">
+                          <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+                            How the priority score was calculated
+                          </summary>
+                          <div className="border-line grid gap-4 border-t p-4 sm:grid-cols-2">
+                            {story.scoreBreakdown.components.map((part) => (
+                              <div key={part.id}>
+                                <div className="flex items-baseline justify-between gap-3">
+                                  <span className="text-sm font-medium">
+                                    {part.label}
+                                  </span>
+                                  <span className="text-muted text-xs">
+                                    {part.score.toFixed(1)} / 10 ·{" "}
+                                    {Math.round(part.weight * 100)}%
+                                  </span>
+                                </div>
+                                <div
+                                  className="bg-line mt-2 h-2 overflow-hidden rounded-full"
+                                  aria-label={`${part.label}: ${part.score.toFixed(1)} out of 10`}
+                                >
+                                  <div
+                                    className="bg-leaf h-full rounded-full"
+                                    style={{
+                                      width: `${Math.min(part.score, 10) * 10}%`,
+                                    }}
+                                  />
+                                </div>
+                                <p className="text-muted mt-1 text-xs leading-5">
+                                  {part.explanation} Adds{" "}
+                                  {part.points.toFixed(2)} points.
+                                </p>
+                              </div>
+                            ))}
+                            <p className="text-muted text-xs leading-5 sm:col-span-2">
+                              Weighted score{" "}
+                              {story.scoreBreakdown.weightedScore.toFixed(4)} ×
+                              trusted-source adjustment{" "}
+                              {story.scoreBreakdown.averageTrust.toFixed(4)} ={" "}
+                              {story.scoreBreakdown.finalScore.toFixed(2)}. This
+                              is a sorting aid; editors still decide whether to
+                              publish.
+                            </p>
+                          </div>
+                        </details>
+                      ) : null}
+                      {story.image ? (
+                        <div className="border-line mt-4 flex max-w-3xl flex-col gap-3 rounded-lg border p-3 sm:flex-row">
+                          <Image
+                            src={story.image.url}
+                            alt={`AI-generated editorial illustration for ${story.headline}`}
+                            width={480}
+                            height={270}
+                            unoptimized
+                            className="bg-paper aspect-video w-full rounded object-cover sm:w-48"
+                          />
+                          <div className="text-sm">
+                            <p className="font-medium">
+                              AI-generated illustration
+                            </p>
+                            <p className="text-muted mt-1 text-xs leading-5">
+                              {story.image.approved
+                                ? "Approved for the magazine. This is illustrative art, not a documentary photo."
+                                : "Waiting for image review. It will not appear in the magazine until an editor approves it."}
+                            </p>
+                            <a
+                              className="text-leaf-dark mt-2 inline-block text-xs underline"
+                              href="/desk/images"
+                            >
+                              Review illustrations
+                            </a>
+                          </div>
+                        </div>
+                      ) : null}
                       <p className="text-muted mt-2 text-xs">
                         Gemini AI check:{" "}
                         {story.isAiRelated === true
