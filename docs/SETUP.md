@@ -110,7 +110,7 @@ You can generate a local cron secret with:
 openssl rand -hex 32
 ```
 
-Set `GEMINI_API_KEY` in Vercel Production for the ingest route to summarize and score stories and for the draft builder to arrange approved stories and draft the editor note. Without it, new stories remain in the queue and publishing stays blocked. The editable template's section slot counts guide Gemini's layout; if a section has more approved stories than slots, the model uses brief presentation for overflow and keeps every approved story. `WRITER_MODEL` and `DESIGNER_MODEL` are optional model overrides; when blank, both use Google's configured default. Do not put the Gemini key in GitHub or the browser. `APP_URL` is used by GitHub Actions, not by the web app.
+Set `GEMINI_API_KEY` in Vercel Production for the web app's draft builder to arrange approved stories and draft the editor note. The scheduled worker also needs the key in GitHub Actions to summarize and score newly fetched stories. Without it, new stories remain in the queue and publishing stays blocked. The editable template's section slot counts guide Gemini's layout; if a section has more approved stories than slots, the model uses brief presentation for overflow and keeps every approved story. `WRITER_MODEL` and `DESIGNER_MODEL` are optional model overrides; when blank, both use Google's configured default. Keep the Gemini key in Vercel and GitHub Actions secrets only; never expose it in the browser or commit it. `APP_URL` is used by GitHub Actions, not by the web app.
 
 ## 5. Deploy the app to Vercel
 
@@ -135,16 +135,20 @@ In the repository, open Settings → Secrets and variables → Actions and add t
 
 - APP_URL: the deployed app URL, with no trailing slash
 - CRON_SECRET: the same value configured in Vercel
+- NEXT_PUBLIC_SUPABASE_URL: the Supabase project URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY: the project's anon or publishable key
+- SUPABASE_SERVICE_ROLE_KEY: the private service-role key
+- GEMINI_API_KEY: the Gemini API key
 
-The ingest workflow sends only the cron request. The web app uses its server-only Supabase service-role key to fetch feeds, store articles and stories, and write the run record. The compile workflow uses short-lived signed storage URLs and needs only the same `APP_URL` and `CRON_SECRET`; it does not need Supabase keys or a GitHub dispatch token.
+The scheduled ingest runs directly on a GitHub Actions runner. This avoids Vercel Hobby's 60-second function limit. It uses the Supabase service-role key to fetch trusted feeds, store articles and stories, run Gemini checks, and write the run record. `NEXT_PUBLIC_SITE_URL` is set from `APP_URL` for the worker's shared environment validation. Optional model overrides can be added as Actions variables named `WRITER_MODEL` and `DESIGNER_MODEL`. The compile workflow uses short-lived signed storage URLs and needs only `APP_URL` and `CRON_SECRET`; it does not need Supabase keys, Gemini, or a GitHub dispatch token.
 
 The workflows are available under the repository Actions tab:
 
 - CI runs lint, typecheck, and build for pull requests and pushes to main.
-- Scheduled ingest runs at 03:00 and 15:00 UTC, which is 08:00 and 20:00 in Pakistan. A workflow compiles the current draft PDF after each ingest attempt. Publishing requires the latest pass to succeed across the current trusted-source list. Ingest can also be started with workflow_dispatch.
+- Scheduled ingest runs at 03:00 and 15:00 UTC, which is 08:00 and 20:00 in Pakistan. It fetches and processes the trusted feeds directly on GitHub Actions; a follow-up workflow compiles the current draft PDF after each non-cancelled attempt. Publishing requires the latest pass to succeed across the current trusted-source list. Ingest can also be started with workflow_dispatch on `main`.
 - LaTeX check compiles the May reference and a generated special-character magazine fixture when LaTeX or renderer files change. It stores the reference PDF as an artifact.
 
-Make sure GitHub's `CRON_SECRET` exactly matches Vercel Production's `CRON_SECRET`; a mismatch returns HTTP 401 and stops ingest. Never paste the value into chat. After applying migrations and deploying, run Scheduled ingest once from Actions and check its result and the Compile current magazine draft workflow. `public.runs` should show `ok = true`, and the Draft page should have a current PDF preview.
+The ingest runner requires all four Supabase/Gemini secrets above. The compile workflow needs `APP_URL` and the same `CRON_SECRET` configured in Vercel Production. Never paste secret values into chat. After applying migrations, adding these secrets, and deploying, run Scheduled ingest once from Actions and check its result and the Compile current magazine draft workflow. `public.runs` should show `ok = true`, and the Draft page should have a current PDF preview.
 
 ## 7. Foundation route map
 
