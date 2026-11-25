@@ -133,6 +133,25 @@ async function fetchApprovedStories(admin: AdminClient, windowStart: string) {
     articlesByStory.set(article.story_id, values);
   }
 
+  const { data: illustrations, error: illustrationsError } = await admin
+    .from("images")
+    .select("story_id, storage_path")
+    .in("story_id", ids)
+    .eq("license", "own")
+    .eq("approved", true);
+  if (illustrationsError)
+    throw new Error("Could not load approved illustrations.");
+  const imagePathByStory = new Map<string, string>();
+  for (const image of illustrations ?? []) {
+    if (
+      image.story_id &&
+      image.storage_path.toLowerCase().endsWith(".png") &&
+      !imagePathByStory.has(image.story_id)
+    ) {
+      imagePathByStory.set(image.story_id, `images/${image.story_id}.png`);
+    }
+  }
+
   return {
     stories: eligible.flatMap((story) => {
       const section = story.section;
@@ -147,6 +166,7 @@ async function fetchApprovedStories(admin: AdminClient, windowStart: string) {
           finalScore: Number(story.final_score ?? 0),
           keyFacts: facts.success ? facts.data : [],
           sources: articlesByStory.get(story.id) ?? [],
+          imagePath: imagePathByStory.get(story.id),
         },
       ];
     }),

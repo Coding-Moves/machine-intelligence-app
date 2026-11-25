@@ -1,8 +1,40 @@
 import assert from "node:assert/strict";
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
+import { deflateSync } from "node:zlib";
 import test from "node:test";
 import { escapeTex } from "../lib/magazine/escape.ts";
 import { renderMagazineTex } from "../lib/magazine/render.ts";
+
+function createSmokePng() {
+  function chunk(type, data) {
+    const typeBytes = Buffer.from(type);
+    const content = Buffer.concat([typeBytes, data]);
+    let crc = 0xffffffff;
+    for (const byte of content) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit += 1) {
+        crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+      }
+    }
+    const result = Buffer.alloc(12 + data.length);
+    result.writeUInt32BE(data.length, 0);
+    content.copy(result, 4);
+    result.writeUInt32BE((crc ^ 0xffffffff) >>> 0, 8 + data.length);
+    return result;
+  }
+
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(1, 0);
+  header.writeUInt32BE(1, 4);
+  header[8] = 8;
+  header[9] = 6;
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk("IHDR", header),
+    chunk("IDAT", deflateSync(Buffer.from([0, 24, 96, 140, 255]))),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
 
 test("LaTeX text escaping protects TeX syntax and control characters", () => {
   assert.equal(
@@ -53,6 +85,7 @@ test("magazine renderer escapes hostile story text and keeps notes clearly label
         summary:
           "The report says 50% and includes {editor} text with $values_1$.",
         section: "pakistan",
+        imagePath: `images/${storyId}.png`,
         finalScore: 8,
         keyFacts: [{ label: "Result", value: "50% & tested" }],
         sources: [
@@ -69,6 +102,7 @@ test("magazine renderer escapes hostile story text and keeps notes clearly label
         summary:
           "This story is rendered as a brief because the section target is one.",
         section: "pakistan",
+        imagePath: "../../secret.tex",
         finalScore: 5,
         keyFacts: [],
         sources: [],
@@ -82,6 +116,11 @@ test("magazine renderer escapes hostile story text and keeps notes clearly label
   assert.match(tex, /Machine Intelligence/);
   assert.match(tex, /Academic supervision/);
   assert.match(tex, /Dr\. Example/);
+  assert.match(
+    tex,
+    new RegExp(`\\\\includegraphics\\[[^\\]]+\\]\\{images/${storyId}\\.png\\}`),
+  );
+  assert.doesNotMatch(tex, /secret\.tex/);
   assert.match(tex, /APPROVED STORIES OVER SLOT TARGET/);
   assert.match(tex, /A second approved story/);
   assert.match(tex, /\\small This story is rendered as a brief/);
@@ -90,5 +129,10 @@ test("magazine renderer escapes hostile story text and keeps notes clearly label
   assert.match(tex, /50\\% \\& tested/);
   if (process.env.WRITE_LATEX_SMOKE === "1") {
     await writeFile("latex/generated-render-smoke.tex", tex, "utf8");
+    await mkdir("latex/images", { recursive: true });
+    await writeFile(
+      `latex/images/${storyId}.png`,
+      createSmokePng(),
+    );
   }
 });

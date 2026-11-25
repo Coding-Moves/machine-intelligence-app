@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const admin = createSupabaseAdminClient();
     let query = admin
       .from("editions")
-      .select("id, status, tex_path, tex_hash")
+      .select("id, status, tex_path, tex_hash, window_start, created_at")
       .eq("status", "draft");
     if (input.editionId) query = query.eq("id", input.editionId);
     const { data: edition, error } = await query.maybeSingle();
@@ -89,6 +89,45 @@ export async function POST(request: Request) {
       throw new Error("Could not create a temporary PDF upload link.");
     }
 
+    const { data: approvedStories, error: storiesError } = await admin
+      .from("stories")
+      .select("id")
+      .eq("status", "approved")
+      .eq("is_ai_related", true)
+      .gte("last_updated_at", edition.window_start ?? edition.created_at);
+    if (storiesError) throw new Error("Could not find approved issue stories.");
+
+    const storyIds = (approvedStories ?? []).map((story) => story.id);
+    const { data: images, error: imagesError } = storyIds.length
+      ? await admin
+          .from("images")
+          .select("story_id, storage_path")
+          .in("story_id", storyIds)
+          .eq("license", "own")
+          .eq("approved", true)
+          .like("storage_path", "%.png")
+      : { data: [], error: null };
+    if (imagesError)
+      throw new Error("Could not find approved issue illustrations.");
+    const issueImages = await Promise.all(
+      (images ?? []).flatMap((image) => {
+        if (!image.story_id) return [];
+        return [
+          admin.storage
+            .from("drafts")
+            .createSignedUrl(image.storage_path, 3600)
+            .then(({ data, error }) => {
+              if (error || !data?.signedUrl) {
+                throw new Error(
+                  "Could not create a temporary illustration link.",
+                );
+              }
+              return { storyId: image.story_id!, url: data.signedUrl };
+            }),
+        ];
+      }),
+    );
+
     return Response.json({
       ok: true,
       ready: true,
@@ -97,6 +136,7 @@ export async function POST(request: Request) {
       sourceUrl: source.signedUrl,
       pdfUploadUrl: upload.signedUrl,
       pdfPath,
+      images: issueImages,
     });
   } catch (error) {
     console.error("Could not prepare the draft PDF compile.", error);

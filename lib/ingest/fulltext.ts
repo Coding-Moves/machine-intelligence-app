@@ -35,6 +35,10 @@ const robotsRules = new Map<
 >();
 const lastRequestByHost = new Map<string, number>();
 
+function isArxivHost(hostname: string) {
+  return hostname === "arxiv.org" || hostname.endsWith(".arxiv.org");
+}
+
 function assertHttpsUrl(value: string, sourceDomain: string) {
   const url = new URL(value);
   const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
@@ -164,7 +168,13 @@ async function getRobots(origin: string) {
   const pending = (async () => {
     const robotsUrl = new URL("/robots.txt", origin).toString();
     const sourceDomain = normalizeSourceDomain(origin);
+    const hostname = new URL(origin).hostname;
     try {
+      // arXiv asks clients to make no more than one request every three
+      // seconds. Count its robots.txt request as part of that limit too.
+      if (isArxivHost(hostname)) {
+        await waitForCrawlDelay(hostname, 3);
+      }
       const result = await requestText(
         robotsUrl,
         sourceDomain,
@@ -212,7 +222,10 @@ async function fetchRobotsAllowedText(
   }
   await waitForCrawlDelay(
     url.hostname,
-    rules?.getCrawlDelay(INGEST_USER_AGENT),
+    Math.max(
+      rules?.getCrawlDelay(INGEST_USER_AGENT) ?? 0,
+      isArxivHost(url.hostname) ? 3 : 0,
+    ),
   );
   return requestText(url.toString(), sourceDomain, maxBytes, contentType);
 }

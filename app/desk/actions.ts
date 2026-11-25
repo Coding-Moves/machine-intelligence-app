@@ -309,6 +309,56 @@ export async function saveStoryEdit(formData: FormData) {
   revalidatePath("/desk");
 }
 
+export async function setImageApproval(formData: FormData) {
+  await requireEditor();
+  const id = storyIdSchema.safeParse(formData.get("imageId"));
+  const approvedValue = z
+    .enum(["true", "false"])
+    .safeParse(formData.get("approved"));
+  if (!id.success || !approvedValue.success) {
+    throw new Error("Invalid image review update.");
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data: image, error: lookupError } = await admin
+    .from("images")
+    .select("id, story_id, license")
+    .eq("id", id.data)
+    .maybeSingle();
+  if (lookupError || !image)
+    throw new Error("Could not find that illustration.");
+  if (image.license !== "own") {
+    throw new Error(
+      "Only publication-owned illustrations can be approved here.",
+    );
+  }
+
+  const approved = approvedValue.data === "true";
+  const { error } = await admin
+    .from("images")
+    .update({ approved })
+    .eq("id", image.id)
+    .eq("license", "own");
+  if (error) throw new Error("Could not save the illustration review.");
+
+  if (image.story_id) {
+    const { data: story, error: storyError } = await admin
+      .from("stories")
+      .select("status")
+      .eq("id", image.story_id)
+      .maybeSingle();
+    if (storyError) throw new Error("Could not load the illustration's story.");
+    if (story?.status === "approved") {
+      await invalidateCurrentDraftArtifacts();
+      await rebuildMagazineDraft();
+    }
+  }
+
+  revalidatePath("/desk/images");
+  revalidatePath("/desk/stories");
+  revalidatePath("/desk");
+}
+
 export async function saveDraftTemplateAction(formData: FormData) {
   await requireEditor();
   const admin = createSupabaseAdminClient();

@@ -51,6 +51,8 @@ npx supabase db push --remote
 
 The migrations create the editor, edition, run, source, article, story, and image tables; enable pgvector; apply row-level security; create the public issues and private drafts storage buckets; seed the initial RSS sources; mark only the four reviewed feeds as trusted; and ensure there is one current draft edition. The ingest migration adds a service-role-only database function that stores each article and its story link atomically. The guarded publication migration enforces the 14-day minimum and editorial checklist inside one transaction. The artifact revision migration invalidates the saved TeX/PDF when approved story content, the template, or the editor's note changes, and prevents an older in-progress build from becoming publishable.
 
+Always apply pending migrations before starting an ingest run after updating the app. The editorial review migration adds the explanation field shown beside each AI story score; the source migration changes the existing arXiv rows to the supported RSS host without losing their trust settings or article history.
+
 The May LaTeX reference uses the committed `latex/reference/cover-placeholder.png`. Keep real cover art in Supabase Storage's `issues` bucket and only use artwork the project has permission to publish.
 
 Add the first real admin in the Supabase SQL Editor. Replace the sample values before running this statement:
