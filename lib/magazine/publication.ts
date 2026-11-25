@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchAllPages, fetchRowsByIds } from "@/lib/supabase/batched-query";
 import type { Json } from "@/lib/supabase/types";
 import { planItemSchema } from "@/lib/magazine/plan";
 import {
@@ -76,17 +77,25 @@ export async function getDraftPublishReadiness(
     trustedSourceResult,
   ] = await Promise.all([
     uniqueStoryIds.length
-      ? admin
-          .from("stories")
-          .select("id, status, is_ai_related, verification")
-          .in("id", uniqueStoryIds)
+      ? fetchRowsByIds(uniqueStoryIds, (ids, from, to) =>
+          admin
+            .from("stories")
+            .select("id, status, is_ai_related, verification")
+            .in("id", ids)
+            .order("id", { ascending: true })
+            .range(from, to),
+        )
       : Promise.resolve({ data: [], error: null }),
-    admin
-      .from("stories")
-      .select("id")
-      .eq("status", "approved")
-      .eq("is_ai_related", true)
-      .gte("last_updated_at", windowStart),
+    fetchAllPages((from, to) =>
+      admin
+        .from("stories")
+        .select("id")
+        .eq("status", "approved")
+        .eq("is_ai_related", true)
+        .gte("last_updated_at", windowStart)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
     admin
       .from("stories")
       .select("id", { count: "exact", head: true })
@@ -101,10 +110,14 @@ export async function getDraftPublishReadiness(
       .eq("needs_reprocess", false)
       .gte("last_updated_at", windowStart),
     uniqueStoryIds.length
-      ? admin
-          .from("articles")
-          .select("story_id, source_id")
-          .in("story_id", uniqueStoryIds)
+      ? fetchRowsByIds(uniqueStoryIds, (ids, from, to) =>
+          admin
+            .from("articles")
+            .select("story_id, source_id")
+            .in("story_id", ids)
+            .order("id", { ascending: true })
+            .range(from, to),
+        )
       : Promise.resolve({ data: [], error: null }),
     admin
       .from("runs")
@@ -114,7 +127,15 @@ export async function getDraftPublishReadiness(
       .order("started_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(1),
-    admin.from("sources").select("id").eq("active", true).eq("trusted", true),
+    fetchAllPages((from, to) =>
+      admin
+        .from("sources")
+        .select("id")
+        .eq("active", true)
+        .eq("trusted", true)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
 
   if (
@@ -134,11 +155,15 @@ export async function getDraftPublishReadiness(
     ...new Set(articleRows.map((article) => article.source_id)),
   ];
   const { data: trustedSources, error: sourceError } = sourceIds.length
-    ? await admin
-        .from("sources")
-        .select("id")
-        .in("id", sourceIds)
-        .eq("trusted", true)
+    ? await fetchRowsByIds(sourceIds, (ids, from, to) =>
+        admin
+          .from("sources")
+          .select("id")
+          .in("id", ids)
+          .eq("trusted", true)
+          .order("id", { ascending: true })
+          .range(from, to),
+      )
     : { data: [], error: null };
   if (sourceError) {
     throw new Error("Could not verify the issue’s trusted sources.");

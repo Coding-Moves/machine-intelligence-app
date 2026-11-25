@@ -5,6 +5,7 @@ import { siteCopy } from "@/content/site";
 import { requireEditor } from "@/lib/auth/require-editor";
 import { calculateScoreBreakdown } from "@/lib/ingest/scoring";
 import { getDraftEdition } from "@/lib/magazine/build";
+import { fetchAllPages, fetchRowsByIds } from "@/lib/supabase/batched-query";
 import {
   defaultMagazineTemplate,
   readMagazineTemplate,
@@ -16,34 +17,58 @@ export const dynamic = "force-dynamic";
 export default async function StoriesPage() {
   await requireEditor();
   const admin = createSupabaseAdminClient();
-  const { data: rows, error } = await admin
-    .from("stories")
-    .select(
-      "id, headline, summary, section, status, final_score, reject_reason, verification, is_ai_related, ai_importance, ai_pakistan_relevance, editorial_reason, first_seen_at",
-    )
-    .in("status", ["candidate", "approved"])
-    .order("final_score", { ascending: false, nullsFirst: false });
-  if (error) throw new Error("Could not load stories for review.");
+  const { data: rows, error } = await fetchAllPages((from, to) =>
+    admin
+      .from("stories")
+      .select(
+        "id, headline, summary, section, status, final_score, reject_reason, verification, is_ai_related, ai_importance, ai_pakistan_relevance, editorial_reason, first_seen_at",
+      )
+      .in("status", ["candidate", "approved"])
+      .order("final_score", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (error) {
+    console.error("Could not load stories for review.", error);
+    throw new Error("Could not load stories for review.");
+  }
 
   const storyIds = (rows ?? []).map((story) => story.id);
   const { data: articles, error: articleError } = storyIds.length
-    ? await admin
-        .from("articles")
-        .select("id, story_id, source_id, url")
-        .in("story_id", storyIds)
+    ? await fetchRowsByIds(storyIds, (ids, from, to) =>
+        admin
+          .from("articles")
+          .select("id, story_id, source_id, url")
+          .in("story_id", ids)
+          .order("id", { ascending: true })
+          .range(from, to),
+      )
     : { data: [], error: null };
-  if (articleError) throw new Error("Could not load story sources.");
+  if (articleError) {
+    console.error(
+      "Could not load story source links for review.",
+      articleError,
+    );
+    throw new Error("Could not load story sources.");
+  }
   const sourceIds = [
     ...new Set((articles ?? []).map((article) => article.source_id)),
   ];
   const { data: sources, error: sourceError } = sourceIds.length
-    ? await admin
-        .from("sources")
-        .select("id, name, trust_weight")
-        .in("id", sourceIds)
-        .eq("trusted", true)
+    ? await fetchRowsByIds(sourceIds, (ids, from, to) =>
+        admin
+          .from("sources")
+          .select("id, name, trust_weight")
+          .in("id", ids)
+          .eq("trusted", true)
+          .order("id", { ascending: true })
+          .range(from, to),
+      )
     : { data: [], error: null };
-  if (sourceError) throw new Error("Could not load story source names.");
+  if (sourceError) {
+    console.error("Could not load trusted story source names.", sourceError);
+    throw new Error("Could not load story source names.");
+  }
   const sourceNames = new Map(
     (sources ?? []).map((source) => [
       source.id,
@@ -67,14 +92,21 @@ export default async function StoriesPage() {
   }
 
   const { data: images, error: imageError } = storyIds.length
-    ? await admin
-        .from("images")
-        .select("id, story_id, storage_path, approved, credit")
-        .in("story_id", storyIds)
-        .eq("license", "own")
-        .order("created_at", { ascending: false })
+    ? await fetchRowsByIds(storyIds, (ids, from, to) =>
+        admin
+          .from("images")
+          .select("id, story_id, storage_path, approved, credit")
+          .in("story_id", ids)
+          .eq("license", "own")
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to),
+      )
     : { data: [], error: null };
-  if (imageError) throw new Error("Could not load story illustrations.");
+  if (imageError) {
+    console.error("Could not load story illustrations.", imageError);
+    throw new Error("Could not load story illustrations.");
+  }
   const imageByStory = new Map<
     string,
     { url: string; approved: boolean; credit: string }
@@ -83,12 +115,10 @@ export default async function StoriesPage() {
     (images ?? []).map((image) => [image.storage_path, image]),
   );
   const { data: signedImages, error: signedImagesError } = images?.length
-    ? await admin.storage
-        .from("drafts")
-        .createSignedUrls(
-          images.map((image) => image.storage_path),
-          3600,
-        )
+    ? await admin.storage.from("drafts").createSignedUrls(
+        images.map((image) => image.storage_path),
+        3600,
+      )
     : { data: [], error: null };
   if (signedImagesError) throw new Error("Could not sign story illustrations.");
   for (const signed of signedImages ?? []) {

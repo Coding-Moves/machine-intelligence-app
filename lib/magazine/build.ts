@@ -22,6 +22,7 @@ import {
   type MagazineTemplate,
 } from "@/lib/magazine/template";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchAllPages, fetchRowsByIds } from "@/lib/supabase/batched-query";
 import type { Json } from "@/lib/supabase/types";
 
 const factsSchema = z.array(z.object({ label: z.string(), value: z.string() }));
@@ -82,15 +83,19 @@ function jsonRecord(value: Json): Record<string, Json | undefined> {
 }
 
 async function fetchApprovedStories(admin: AdminClient, windowStart: string) {
-  const { data, error } = await admin
-    .from("stories")
-    .select(
-      "id, headline, summary, key_facts, section, final_score, status, is_ai_related",
-    )
-    .eq("status", "approved")
-    .eq("is_ai_related", true)
-    .gte("last_updated_at", windowStart)
-    .order("final_score", { ascending: false, nullsFirst: false });
+  const { data, error } = await fetchAllPages((from, to) =>
+    admin
+      .from("stories")
+      .select(
+        "id, headline, summary, key_facts, section, final_score, status, is_ai_related",
+      )
+      .eq("status", "approved")
+      .eq("is_ai_related", true)
+      .gte("last_updated_at", windowStart)
+      .order("final_score", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
   if (error) throw new Error("Could not load approved stories.");
 
   const eligible = (data ?? []).filter(
@@ -100,21 +105,31 @@ async function fetchApprovedStories(admin: AdminClient, windowStart: string) {
   if (!ids.length)
     return { stories: [] as RenderStory[], skipped: (data ?? []).length };
 
-  const { data: articles, error: articlesError } = await admin
-    .from("articles")
-    .select("story_id, source_id, url, published_at")
-    .in("story_id", ids);
+  const { data: articles, error: articlesError } = await fetchRowsByIds(
+    ids,
+    (storyIds, from, to) =>
+      admin
+        .from("articles")
+        .select("story_id, source_id, url, published_at")
+        .in("story_id", storyIds)
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
   if (articlesError) throw new Error("Could not load story source links.");
 
   const sourceIds = [
     ...new Set((articles ?? []).map((article) => article.source_id)),
   ];
   const { data: sources, error: sourcesError } = sourceIds.length
-    ? await admin
-        .from("sources")
-        .select("id, name")
-        .in("id", sourceIds)
-        .eq("trusted", true)
+    ? await fetchRowsByIds(sourceIds, (ids, from, to) =>
+        admin
+          .from("sources")
+          .select("id, name")
+          .in("id", ids)
+          .eq("trusted", true)
+          .order("id", { ascending: true })
+          .range(from, to),
+      )
     : { data: [], error: null };
   if (sourcesError) throw new Error("Could not load story source names.");
   const sourceName = new Map(
@@ -133,12 +148,17 @@ async function fetchApprovedStories(admin: AdminClient, windowStart: string) {
     articlesByStory.set(article.story_id, values);
   }
 
-  const { data: illustrations, error: illustrationsError } = await admin
-    .from("images")
-    .select("story_id, storage_path")
-    .in("story_id", ids)
-    .eq("license", "own")
-    .eq("approved", true);
+  const { data: illustrations, error: illustrationsError } =
+    await fetchRowsByIds(ids, (storyIds, from, to) =>
+      admin
+        .from("images")
+        .select("story_id, storage_path")
+        .in("story_id", storyIds)
+        .eq("license", "own")
+        .eq("approved", true)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
   if (illustrationsError)
     throw new Error("Could not load approved illustrations.");
   const imagePathByStory = new Map<string, string>();

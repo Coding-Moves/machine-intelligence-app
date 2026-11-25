@@ -37,6 +37,8 @@ jobs:
         run: npm run test:ingest
       - name: Magazine rendering tests
         run: npm run test:magazine
+      - name: Supabase query batching tests
+        run: npm run test:supabase
       - name: Lint
         run: npm run lint
       - name: Typecheck
