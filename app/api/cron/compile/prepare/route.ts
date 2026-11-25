@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchAllPages, fetchRowsByIds } from "@/lib/supabase/batched-query";
 import { getCronSecret } from "@/lib/env";
 import { hasValidCronBearer } from "@/lib/security/cron-auth";
 
@@ -89,23 +90,32 @@ export async function POST(request: Request) {
       throw new Error("Could not create a temporary PDF upload link.");
     }
 
-    const { data: approvedStories, error: storiesError } = await admin
-      .from("stories")
-      .select("id")
-      .eq("status", "approved")
-      .eq("is_ai_related", true)
-      .gte("last_updated_at", edition.window_start ?? edition.created_at);
+    const { data: approvedStories, error: storiesError } = await fetchAllPages(
+      (from, to) =>
+        admin
+          .from("stories")
+          .select("id")
+          .eq("status", "approved")
+          .eq("is_ai_related", true)
+          .gte("last_updated_at", edition.window_start ?? edition.created_at)
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
     if (storiesError) throw new Error("Could not find approved issue stories.");
 
     const storyIds = (approvedStories ?? []).map((story) => story.id);
     const { data: images, error: imagesError } = storyIds.length
-      ? await admin
-          .from("images")
-          .select("story_id, storage_path")
-          .in("story_id", storyIds)
-          .eq("license", "own")
-          .eq("approved", true)
-          .like("storage_path", "%.png")
+      ? await fetchRowsByIds(storyIds, (ids, from, to) =>
+          admin
+            .from("images")
+            .select("story_id, storage_path")
+            .in("story_id", ids)
+            .eq("license", "own")
+            .eq("approved", true)
+            .like("storage_path", "%.png")
+            .order("id", { ascending: true })
+            .range(from, to),
+        )
       : { data: [], error: null };
     if (imagesError)
       throw new Error("Could not find approved issue illustrations.");
