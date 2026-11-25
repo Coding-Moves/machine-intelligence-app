@@ -50,6 +50,23 @@ test("fetchRowsByIds batches unique IDs and pages each batch", async () => {
   assert.deepEqual(requests[3], { ids: ["c", "d"], from: 0, to: 0 });
 });
 
+test("708 story IDs stay within the default PostgREST batch size", async () => {
+  const storyIds = Array.from(
+    { length: 708 },
+    (_, index) =>
+      `00000000-0000-4000-8000-${index.toString(16).padStart(12, "0")}`,
+  );
+  const batchLengths = [];
+  const result = await fetchRowsByIds(storyIds, async (ids) => {
+    batchLengths.push(ids.length);
+    return { data: ids.map((id) => ({ id })), error: null };
+  });
+
+  assert.equal(result.error, null);
+  assert.equal(result.data?.length, 708);
+  assert.deepEqual(batchLengths, [100, 100, 100, 100, 100, 100, 100, 8]);
+});
+
 test("batched reads stop and return the first database error", async () => {
   const databaseError = new Error("request failed");
   let requestCount = 0;
