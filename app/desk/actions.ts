@@ -7,6 +7,7 @@ import { siteCopy } from "@/content/site";
 import { requireAdmin, requireEditor } from "@/lib/auth/require-editor";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchRowsByIds } from "@/lib/supabase/batched-query";
 import {
   invalidateCurrentDraftArtifacts,
   rebuildMagazineDraft,
@@ -61,11 +62,15 @@ async function getTrustedStoryEvidence(
     ...new Set((articles ?? []).map((article) => article.source_id)),
   ];
   const { data: sources, error: sourcesError } = sourceIds.length
-    ? await admin
-        .from("sources")
-        .select("id")
-        .in("id", sourceIds)
-        .eq("trusted", true)
+    ? await fetchRowsByIds(sourceIds, (ids, from, to) =>
+        admin
+          .from("sources")
+          .select("id")
+          .in("id", ids)
+          .eq("trusted", true)
+          .order("id", { ascending: true })
+          .range(from, to),
+      )
     : { data: [], error: null };
   if (sourcesError) throw new Error("Could not verify trusted story sources.");
   const trustedSourceIds = new Set((sources ?? []).map((source) => source.id));
