@@ -155,28 +155,7 @@ jobs:
         env:
           UPLOAD_URL: ${{ steps.prepare.outputs.upload_url }}
         run: |
-          node <<'NODE'
-          const fs = require('node:fs/promises');
-          (async () => {
-            const pdf = await fs.readFile('magazine/build/edition.pdf');
-            const response = await fetch(process.env.UPLOAD_URL, {
-              method: 'POST',
-              headers: {
-                'content-type': 'application/pdf',
-                'cache-control': 'max-age=3600',
-                'x-upsert': 'true',
-              },
-              body: pdf,
-            });
-            if (!response.ok) {
-              throw new Error(`Supabase PDF upload returned HTTP ${response.status}.`);
-            }
-            console.log(`Uploaded compiled PDF (${pdf.byteLength} bytes).`);
-          })().catch((error) => {
-            console.error(error);
-            process.exitCode = 1;
-          });
-          NODE
+          node scripts/upload-signed-pdf.mjs magazine/build/edition.pdf
 
       - name: Record the compile result
         if: always() && steps.prepare.outputs.ready == 'true'
