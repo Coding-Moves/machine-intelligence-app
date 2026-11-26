@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:ingest": "node --experimental-strip-types --test tests/ingest.test.mjs tests/scoring.test.mjs",
-    "test:magazine": "node --experimental-strip-types --test tests/magazine-layout.test.mjs tests/magazine-render.test.mjs tests/publication-readiness.test.mjs tests/publication-email.test.mjs",
+    "test:magazine": "node --experimental-strip-types --test tests/magazine-layout.test.mjs tests/magazine-rebuild.test.mjs tests/magazine-render.test.mjs tests/publication-readiness.test.mjs tests/publication-email.test.mjs",
     "test:supabase": "node --experimental-strip-types --test tests/supabase-batched-query.test.mjs",
     "ingest:once": "node --conditions=react-server --import tsx scripts/ingest-once.ts",
     "format": "prettier --write .",

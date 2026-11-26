@@ -11,10 +11,13 @@ import {
 } from "@/lib/ingest/rss";
 import { findMatchingStory, fingerprintTitle } from "@/lib/ingest/cluster";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchAllPages } from "@/lib/supabase/batched-query";
 import type { Json } from "@/lib/supabase/types";
 import { enrichPendingStories } from "@/lib/ingest/enrich";
 import { generateMissingStoryIllustrations } from "@/lib/ingest/illustrations";
 import { rebuildMagazineDraft } from "@/lib/magazine/build";
+import { MAX_ISSUE_COVERAGE_DAYS } from "@/lib/magazine/publication-readiness";
+import { shouldRebuildMagazineDraft } from "@/lib/magazine/rebuild-needed";
 
 const MAX_FULL_TEXT_REQUESTS_PER_SOURCE = 2;
 const URL_HASH_LOOKUP_BATCH_SIZE = 50;
@@ -290,7 +293,7 @@ export async function runIngest() {
     if (!draftNeedsRebuild) {
       const { data: currentDraft, error: draftError } = await supabase
         .from("editions")
-        .select("id, tex_path, tex_hash")
+        .select("id, tex_path, tex_hash, window_start, created_at, layout")
         .eq("status", "draft")
         .maybeSingle();
       if (draftError) {
@@ -300,8 +303,41 @@ export async function runIngest() {
             "Could not check whether the current draft needs an initial build.",
         });
         draftNeedsRebuild = true;
+      } else if (!currentDraft?.tex_path || !currentDraft.tex_hash) {
+        draftNeedsRebuild = true;
       } else {
-        draftNeedsRebuild = !currentDraft?.tex_path || !currentDraft?.tex_hash;
+        const rollingCutoff = new Date(
+          Math.max(
+            Date.parse(currentDraft.window_start ?? currentDraft.created_at),
+            Date.now() - MAX_ISSUE_COVERAGE_DAYS * 24 * 60 * 60 * 1000,
+          ),
+        ).toISOString();
+        const { data: eligibleStories, error: eligibleError } =
+          await fetchAllPages((from, to) =>
+            supabase
+              .from("stories")
+              .select("id, summary, section")
+              .in("status", ["ready", "approved"])
+              .eq("is_ai_related", true)
+              .gte("first_seen_at", rollingCutoff)
+              .order("id", { ascending: true })
+              .range(from, to),
+          );
+        if (eligibleError) {
+          warnings.push({
+            source: "Magazine builder",
+            message:
+              "Could not compare the current magazine layout with eligible stories.",
+          });
+          draftNeedsRebuild = true;
+        } else {
+          draftNeedsRebuild = shouldRebuildMagazineDraft({
+            layout: currentDraft.layout,
+            eligibleStoryIds: (eligibleStories ?? [])
+              .filter((story) => story.section && story.summary?.trim())
+              .map((story) => story.id),
+          });
+        }
       }
     }
     if (draftNeedsRebuild) {
