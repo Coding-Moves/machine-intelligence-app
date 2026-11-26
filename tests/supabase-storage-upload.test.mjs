@@ -24,10 +24,14 @@ test("compiled PDFs are sent to signed Supabase URLs with PUT and upsert", async
 
 test("signed PDF uploads report Supabase failures", async () => {
   await assert.rejects(
-    uploadSignedPdf("https://project.supabase.co/signed-upload", Buffer.alloc(0), async () => ({
-      ok: false,
-      status: 400,
-    })),
+    uploadSignedPdf(
+      "https://project.supabase.co/signed-upload",
+      Buffer.alloc(0),
+      async () => ({
+        ok: false,
+        status: 400,
+      }),
+    ),
     /Supabase PDF upload returned HTTP 400\./,
   );
 });

@@ -17,7 +17,10 @@ export async function uploadSignedPdf(url, pdf, fetchImpl = fetch) {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   const [pdfPath] = process.argv.slice(2);
   const uploadUrl = process.env.UPLOAD_URL;
   if (!pdfPath || !uploadUrl) {
