@@ -7,6 +7,7 @@ import {
   parseFeed,
 } from "../lib/ingest/rss.ts";
 import { findMatchingStory, fingerprintTitle } from "../lib/ingest/cluster.ts";
+import { getShortItemWarnings } from "../lib/ingest/short-item-warnings.ts";
 
 const source = {
   id: "source-1",
@@ -81,6 +82,29 @@ test("RSS parsing checks every recent feed item instead of stopping after ten", 
 
   assert.equal(articles.length, 12);
   assert.equal(articles.at(-1)?.url, "https://news.example.test/story/12");
+});
+
+test("short RSS teasers are reported as warnings and skipped", () => {
+  assert.deepEqual(
+    getShortItemWarnings(
+      new Map([
+        ["OpenAI News", 1],
+        ["Research Blog", 3],
+      ]),
+    ),
+    [
+      {
+        source: "OpenAI News",
+        message:
+          "1 recent feed item had too little text to review and was not added to the magazine.",
+      },
+      {
+        source: "Research Blog",
+        message:
+          "3 recent feed items had too little text to review and were not added to the magazine.",
+      },
+    ],
+  );
 });
 
 test("an issue only imports articles from its cycle, while retaining undated new items", () => {
