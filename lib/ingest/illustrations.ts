@@ -61,7 +61,7 @@ async function createIllustration(
     storage_path: storagePath,
     credit: "AI-generated illustration (Google Gemini)",
     license: "own",
-    approved: false,
+    approved: true,
   });
   if (insertError) {
     await admin.storage.from("drafts").remove([storagePath]);
@@ -78,7 +78,7 @@ export async function generateMissingStoryIllustrations(admin: AdminClient) {
   const { data: candidates, error: candidateError } = await admin
     .from("stories")
     .select("id, headline, summary")
-    .in("status", ["candidate", "approved"])
+    .in("status", ["ready", "approved"])
     .eq("is_ai_related", true)
     .not("summary", "is", null)
     .order("final_score", { ascending: false, nullsFirst: false })

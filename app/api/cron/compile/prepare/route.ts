@@ -90,20 +90,28 @@ export async function POST(request: Request) {
       throw new Error("Could not create a temporary PDF upload link.");
     }
 
-    const { data: approvedStories, error: storiesError } = await fetchAllPages(
+    const { data: eligibleStories, error: storiesError } = await fetchAllPages(
       (from, to) =>
         admin
           .from("stories")
           .select("id")
-          .eq("status", "approved")
+          .in("status", ["ready", "approved"])
           .eq("is_ai_related", true)
-          .gte("last_updated_at", edition.window_start ?? edition.created_at)
+          .gte(
+            "first_seen_at",
+            new Date(
+              Math.max(
+                Date.parse(edition.window_start ?? edition.created_at),
+                Date.now() - 30 * 24 * 60 * 60 * 1000,
+              ),
+            ).toISOString(),
+          )
           .order("id", { ascending: true })
           .range(from, to),
     );
-    if (storiesError) throw new Error("Could not find approved issue stories.");
+    if (storiesError) throw new Error("Could not find eligible issue stories.");
 
-    const storyIds = (approvedStories ?? []).map((story) => story.id);
+    const storyIds = (eligibleStories ?? []).map((story) => story.id);
     const { data: images, error: imagesError } = storyIds.length
       ? await fetchRowsByIds(storyIds, (ids, from, to) =>
           admin

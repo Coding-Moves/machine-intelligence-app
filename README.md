@@ -2,18 +2,19 @@
 
 The newsroom behind **Machine Intelligence**, the magazine of the Department of Artificial Intelligence at NFC IET Multan.
 
-The newsroom collects stories from an explicit trusted-feed allowlist twice a day, asks Gemini to summarize and arrange approved AI news, and builds a complete private LaTeX/PDF draft for editors to review. An issue cannot be published until it has been open for at least 14 days, trusted-source collection succeeds, all AI and editor queues are clear, every approved story is included, the editor's note is reviewed, and the current PDF is compiled.
+The newsroom checks a trusted RSS allowlist twice a day, asks Gemini to keep stories about AI, computer science, data science, and related computing, and automatically builds a complete private LaTeX/PDF draft. Stories with unsupported claims or out-of-scope topics are excluded; eligible stories need no individual approval. An editor reviews the completed issue and editor's note before publication, which is available after at least seven days and a successful trusted-source pass.
 
 ## Foundation status
 
 - **Public site:** home, issue archive and issue detail, About, How it is made, Privacy, sitemap, robots, Open Graph image, and a custom not-found page.
-- **Editor desk:** Supabase email-and-password sign-in for approved addresses on the editor list; Supabase-backed story review and quarantine; editable issue title, publication masthead, cover and back-cover copy, theme, section names, slot targets, supervisor, editor credits, and editor note.
+- **Editor desk:** Supabase email-and-password sign-in for allowlisted addresses; automatic story eligibility with optional editor rejection; quarantine for out-of-scope or weakly supported stories; editable issue title, masthead, cover and back-cover copy, theme, section names, slot targets, supervisor, editor credits, and editor note.
 - **Supabase:** editor, edition, run, source, article, story, and image tables; row-level security; public issues and private drafts buckets; vector extension.
-- **Ingest:** authenticated twice-daily RSS collection from explicitly trusted sources, robots-aware article text extraction, URL-hash deduplication, conservative title-based grouping, Gemini summaries and scoring, and a numeric claim check against stored source text.
-- **Draft builder:** Gemini arranges approved stories within their editor-assigned sections, chooses story order and presentation, and can draft an editor note using structured JSON. Editable section slot targets guide the layout; overflow stories become briefs so no approved story is dropped. The app validates the plan, renders trusted TeX with escaped story text, and stores the source file in the private `drafts` bucket.
-- **Publication:** GitHub Actions compiles the current private draft PDF after each scheduled ingest attempt. Editors get a visible checklist and a disabled publish button until the 14-day and editorial checks pass. Publishing atomically freezes the issue, marks its stories used, and opens the next draft.
+- **Ingest:** authenticated twice-daily RSS collection from explicitly trusted sources, robots-aware article text extraction, URL-hash deduplication, conservative title-based grouping, Gemini summaries and scoring, and a numeric claim check against stored source text. Stories are automatically marked ready or moved to quarantine.
+- **Draft builder:** Gemini arranges every eligible story into the editable section template and drafts the editor's note. Stories over a section's target become briefs; no eligible story is dropped. Original generated illustrations enter automatically and are labeled as illustrations. The app renders escaped TeX and keeps the PDF preview and download current.
+- **Publication:** issues contain at most 30 days of rolling coverage and become publishable after seven days, once the trusted-feed pass, story checks, editor-note review, and current PDF are ready. Publishing atomically freezes the issue and opens the next draft.
+- **Issue email:** admins save the recipient list and reusable message, and attest that every recipient opted in. Resend sends one private message per recipient with a visible one-click unsubscribe link. Faculty must approve the saved template and exact issue; unsubscribed addresses are suppressed and each delivery has its own status and duplicate guard.
 - **Automation:** CI checks, twice-daily 08:00/20:00 Pakistan-time ingest, automatic draft PDF compilation, and a LaTeX reference compile workflow.
-- **Editorial control:** Gemini grounds stories in trusted source text and flags unsupported numbers. Editors still need to inspect the linked evidence and approve the stories and editor's note; AI output is not automatically published.
+- **Editorial control:** Gemini grounds stories in trusted source text and excludes unsupported claims. Stories enter the draft automatically with no per-story approval step. Editors can reject a story and must review the completed issue and editor's note; AI output is not automatically published.
 
 ## Stack
 

@@ -23,7 +23,7 @@ export default async function StoriesPage() {
       .select(
         "id, headline, summary, section, status, final_score, reject_reason, verification, is_ai_related, ai_importance, ai_pakistan_relevance, editorial_reason, first_seen_at",
       )
-      .in("status", ["candidate", "approved"])
+      .in("status", ["candidate", "ready", "approved"])
       .order("final_score", { ascending: false, nullsFirst: false })
       .order("id", { ascending: true })
       .range(from, to),
@@ -176,7 +176,7 @@ export default async function StoriesPage() {
       <PageHeading
         eyebrow={siteCopy.desk.storiesTitle}
         title={siteCopy.desk.storiesTitle}
-        description="Review stories stored in Supabase. Only approved stories with a summary and section can enter the draft magazine."
+        description="Stories are checked automatically against the publication scope, trusted sources, and numeric claims. Eligible stories enter the draft without individual approval; editors can reject a story or edit its text."
       />
       <div className="mt-10">
         <StoryBoard stories={stories} sections={template.sections} />

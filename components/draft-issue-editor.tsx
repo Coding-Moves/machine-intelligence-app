@@ -1,6 +1,7 @@
 import {
   publishDraftAction,
   rebuildDraftAction,
+  compileDraftAction,
   saveDraftEditorNoteAction,
   saveDraftTemplateAction,
 } from "@/app/desk/actions";
@@ -14,9 +15,10 @@ export function DraftIssueEditor({
   editorNote,
   editorNoteReviewed,
   editionId,
-  createdAt,
+  publishNotBefore,
   publishReadiness,
   pdfUrl,
+  pdfDownloadUrl,
   texUrl,
   provider,
   warning,
@@ -27,9 +29,10 @@ export function DraftIssueEditor({
   editorNote: string;
   editorNoteReviewed: boolean;
   editionId: string;
-  createdAt: string;
+  publishNotBefore: string;
   publishReadiness: PublishReadiness;
   pdfUrl: string | null;
+  pdfDownloadUrl: string | null;
   texUrl: string | null;
   provider: string;
   warning: string | null;
@@ -49,7 +52,7 @@ export function DraftIssueEditor({
             <p className="text-muted mt-2 max-w-2xl text-sm leading-6">
               Gemini chooses each story's order and presentation. Section slot
               targets guide its layout; stories beyond a target are marked as
-              briefs, and no approved story is dropped. The score-based layout
+              briefs, and no eligible story is dropped. The score-based layout
               is used if Gemini is unavailable.
             </p>
           </div>
@@ -107,11 +110,54 @@ export function DraftIssueEditor({
             </div>
           ) : (
             <p className="text-muted mt-3 text-sm">
-              No approved stories with a summary and section are ready. Review
-              stories first.
+              No stories have passed the automatic checks yet. The scheduled
+              ingest will add stories as soon as they are eligible.
             </p>
           )}
         </div>
+      </section>
+
+      <section className="border-line border bg-white p-5 sm:p-7">
+        <div className="border-line flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-serif text-2xl tracking-tight">
+              Latest PDF preview
+            </h2>
+            <p className="text-muted mt-2 max-w-2xl text-sm leading-6">
+              The PDF is compiled from the current TeX source after scheduled
+              ingestion and whenever an editor changes this draft.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <form action={compileDraftAction}>
+              <input type="hidden" name="editionId" value={editionId} />
+              <Button type="submit" variant="secondary">
+                Build PDF preview
+              </Button>
+            </form>
+            {pdfDownloadUrl ? (
+              <a
+                className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#28735a] px-5 text-sm font-medium text-white hover:bg-[#205b47]"
+                href={pdfDownloadUrl}
+              >
+                Download PDF
+              </a>
+            ) : null}
+          </div>
+        </div>
+        {pdfUrl ? (
+          <iframe
+            className="mt-5 h-[75vh] min-h-[540px] w-full rounded border border-[#d8ddd6] bg-[#f5f6f2]"
+            src={pdfUrl}
+            title="Latest magazine PDF preview"
+          />
+        ) : (
+          <p className="text-muted mt-5 rounded bg-[#f5f6f2] p-5 text-sm leading-6">
+            The PDF for the latest TeX source is being built. It will appear
+            here when the LaTeX workflow finishes. You can still download the
+            editable TeX source above.
+          </p>
+        )}
       </section>
 
       <form
@@ -274,8 +320,8 @@ export function DraftIssueEditor({
         <div className="border-line border-b pb-5">
           <h2 className="font-serif text-2xl tracking-tight">Editor’s note</h2>
           <p className="text-muted mt-2 text-sm leading-6">
-            Gemini can draft this from the approved stories. An editor must read
-            and mark it reviewed before it can be used in a published issue.
+            Gemini drafts this from automatically eligible stories. An editor
+            reviews the note as part of the final issue review.
           </p>
         </div>
         <label className="mt-5 block text-sm font-medium">
@@ -286,7 +332,7 @@ export function DraftIssueEditor({
             maxLength={1800}
             defaultValue={editorNote}
             className="border-line bg-paper mt-2 w-full rounded border p-3 text-sm leading-6 font-normal"
-            placeholder="Write or generate the editor’s note after reviewing the approved stories."
+            placeholder="Write or generate the editor’s note from the latest eligible stories."
           />
         </label>
         <label className="mt-4 flex items-start gap-3 text-sm leading-6">
@@ -313,13 +359,14 @@ export function DraftIssueEditor({
             Publish checklist
           </h2>
           <p className="text-muted mt-2 max-w-2xl text-sm leading-6">
-            Publishing stays locked for the first 14 days. Gemini must check
-            each new story, an editor must decide every AI story, all approved
-            stories must be placed, and the reviewed issue PDF must be ready.
+            Publishing stays locked for the first seven days. Gemini must finish
+            the automatic checks and layout, every eligible story must be
+            included, the trusted feeds must pass, the editor’s note must be
+            reviewed, and the latest PDF must be ready.
           </p>
           <p className="text-muted mt-2 text-xs">
-            Draft opened{" "}
-            {new Date(createdAt).toLocaleDateString("en", {
+            Earliest publication{" "}
+            {new Date(publishNotBefore).toLocaleDateString("en", {
               timeZone: "UTC",
               dateStyle: "medium",
             })}{" "}

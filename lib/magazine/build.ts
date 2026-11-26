@@ -24,6 +24,7 @@ import {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchAllPages, fetchRowsByIds } from "@/lib/supabase/batched-query";
 import type { Json } from "@/lib/supabase/types";
+import { MAX_ISSUE_COVERAGE_DAYS } from "@/lib/magazine/publication-readiness";
 
 const factsSchema = z.array(z.object({ label: z.string(), value: z.string() }));
 const savedPlanSchema = z.object({
@@ -82,21 +83,27 @@ function jsonRecord(value: Json): Record<string, Json | undefined> {
     : {};
 }
 
-async function fetchApprovedStories(admin: AdminClient, windowStart: string) {
+async function fetchReadyStories(admin: AdminClient, windowStart: string) {
+  const cutoff = new Date(
+    Math.max(
+      Date.parse(windowStart),
+      Date.now() - MAX_ISSUE_COVERAGE_DAYS * 24 * 60 * 60 * 1000,
+    ),
+  ).toISOString();
   const { data, error } = await fetchAllPages((from, to) =>
     admin
       .from("stories")
       .select(
         "id, headline, summary, key_facts, section, final_score, status, is_ai_related",
       )
-      .eq("status", "approved")
+      .in("status", ["ready", "approved"])
       .eq("is_ai_related", true)
-      .gte("last_updated_at", windowStart)
+      .gte("first_seen_at", cutoff)
       .order("final_score", { ascending: false, nullsFirst: false })
       .order("id", { ascending: true })
       .range(from, to),
   );
-  if (error) throw new Error("Could not load approved stories.");
+  if (error) throw new Error("Could not load AI-ready stories.");
 
   const eligible = (data ?? []).filter(
     (story) => story.section && story.summary?.trim(),
@@ -281,7 +288,7 @@ export async function rebuildMagazineDraft(options?: {
   if (currentEdition.draft_revision !== revision)
     throw new Error("The draft changed before its layout could be generated.");
   const template = readMagazineTemplate(currentEdition.layout);
-  const { stories, skipped } = await fetchApprovedStories(
+  const { stories, skipped } = await fetchReadyStories(
     admin,
     currentEdition.window_start ?? currentEdition.created_at,
   );
@@ -296,7 +303,7 @@ export async function rebuildMagazineDraft(options?: {
       [
         plan.warning,
         skipped
-          ? `${skipped} approved stories need a section and summary before they can be laid out.`
+          ? `${skipped} AI-ready stories need a section and summary before they can be laid out.`
           : null,
       ]
         .filter(Boolean)
@@ -396,7 +403,7 @@ export async function refreshDraftTex(editionId: string) {
   const edition = await getDraftEditionById(admin, editionId);
   if (edition.draft_revision !== revision)
     throw new Error("The draft changed before its TeX could be generated.");
-  const { stories } = await fetchApprovedStories(
+  const { stories } = await fetchReadyStories(
     admin,
     edition.window_start ?? edition.created_at,
   );

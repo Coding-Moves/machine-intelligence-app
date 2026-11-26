@@ -3,6 +3,7 @@ import { siteCopy } from "@/content/site";
 
 const statusStyle: Record<StoryStatus, string> = {
   approved: "bg-[#e2eee7] text-[#245b45]",
+  ready: "bg-[#e2eee7] text-[#245b45]",
   candidate: "bg-[#e8e9e4] text-[#4f5d55]",
   rejected: "bg-[#f4e5e2] text-[#8e443c]",
   published: "bg-[#e2eee7] text-[#245b45]",

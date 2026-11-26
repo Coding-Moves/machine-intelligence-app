@@ -50,22 +50,6 @@ function hasPassedNumberCheck(value: unknown) {
   );
 }
 
-function approvalBlockReason(story: StoryReview) {
-  if (!story.summary?.trim()) return "Add a summary before approval.";
-  if (!story.section) return "Choose a section before approval.";
-  if (story.isAiRelated !== true) {
-    return "Gemini must confirm this story is AI-related.";
-  }
-  if (!story.sources.length) return "This story needs a trusted source.";
-  if (hasVerificationFailure(story.verification)) {
-    return "Correct unsupported numbers before approval.";
-  }
-  if (!hasPassedNumberCheck(story.verification)) {
-    return "The number check must pass against the trusted source text before approval.";
-  }
-  return undefined;
-}
-
 export function StoryBoard({
   stories,
   sections,
@@ -80,7 +64,7 @@ export function StoryBoard({
     return (
       <EmptyState
         title={siteCopy.desk.noStories}
-        description="Run the ingest workflow or check the quarantine page."
+        description="The scheduled job checks new coverage automatically. Check the quarantine page for stories it excluded."
       />
     );
   }
@@ -99,8 +83,8 @@ export function StoryBoard({
             : story.section === section.id,
         );
         if (!sectionStories.length) return null;
-        const approvedCount = sectionStories.filter(
-          (story) => story.status === "approved",
+        const readyCount = sectionStories.filter(
+          (story) => story.status === "ready" || story.status === "approved",
         ).length;
         return (
           <section key={section.id} aria-labelledby={`section-${section.id}`}>
@@ -112,7 +96,7 @@ export function StoryBoard({
                 {section.label}
               </h2>
               <p className="text-muted text-xs">
-                {approvedCount} approved · {sectionStories.length} stories
+                {readyCount} ready · {sectionStories.length} stories
                 {section.id !== "unassigned"
                   ? ` / ${section.slots} target slots`
                   : ""}
@@ -136,7 +120,7 @@ export function StoryBoard({
                       </h3>
                       <p className="text-muted mt-3 text-sm leading-6">
                         {story.summary ||
-                          "No editor summary yet. Add one before approval."}
+                          "The automatic source review has not produced a summary yet."}
                       </p>
                       {story.editorialReason ? (
                         <div className="border-line mt-4 rounded-lg border bg-[#f4f7f4] p-4">
@@ -192,8 +176,8 @@ export function StoryBoard({
                               trusted-source adjustment{" "}
                               {story.scoreBreakdown.averageTrust.toFixed(4)} ={" "}
                               {story.scoreBreakdown.finalScore.toFixed(2)}. This
-                              is a sorting aid; editors still decide whether to
-                              publish.
+                              is a sorting aid; it does not replace the
+                              issue-level publication review.
                             </p>
                           </div>
                         </details>
@@ -214,8 +198,8 @@ export function StoryBoard({
                             </p>
                             <p className="text-muted mt-1 text-xs leading-5">
                               {story.image.approved
-                                ? "Approved for the magazine. This is illustrative art, not a documentary photo."
-                                : "Waiting for image review. It will not appear in the magazine until an editor approves it."}
+                                ? "Automatically included in the magazine. This is illustrative art, not a documentary photo."
+                                : "This illustration is excluded until an editor enables it."}
                             </p>
                             <a
                               className="text-leaf-dark mt-2 inline-block text-xs underline"
@@ -227,31 +211,45 @@ export function StoryBoard({
                         </div>
                       ) : null}
                       <p className="text-muted mt-2 text-xs">
-                        Gemini AI check:{" "}
+                        Automatic topic check:{" "}
                         {story.isAiRelated === true
-                          ? "AI-related"
+                          ? "in publication scope"
                           : story.isAiRelated === false
-                            ? "marked outside the AI scope"
+                            ? "outside publication scope"
                             : "pending"}
                       </p>
+                      {story.status === "ready" ||
+                      story.status === "approved" ? (
+                        <p className="mt-3 border-l-2 border-[#28735a] bg-[#edf6ef] px-3 py-2 text-sm text-[#245b45]">
+                          The topic, trusted-source, and numeric checks passed.
+                          This story is included automatically; no separate
+                          story approval is needed.
+                        </p>
+                      ) : (
+                        <p className="mt-3 border-l-2 border-[#b76b23] bg-[#fff7e9] px-3 py-2 text-sm text-[#704719]">
+                          The automated check is pending. The story enters the
+                          draft only after it passes the publication scope,
+                          source, and numeric checks.
+                        </p>
+                      )}
                       {!story.sources.length ? (
                         <p className="mt-3 border-l-2 border-[#b76b23] bg-[#fff7e9] px-3 py-2 text-sm text-[#704719]">
-                          No source is currently marked trusted. This story
-                          cannot be approved.
+                          No source is currently marked trusted. This story is
+                          not eligible for the issue yet.
                         </p>
                       ) : null}
                       {hasVerificationFailure(story.verification) ? (
                         <p className="mt-3 border-l-2 border-[#a33d35] bg-[#fff2f0] px-3 py-2 text-sm text-[#812c27]">
                           Some numbers in this summary could not be found in the
                           stored source text. Check them against the source
-                          before approval.
+                          before it can enter the issue.
                         </p>
                       ) : null}
                       {!hasVerificationFailure(story.verification) &&
                       !hasPassedNumberCheck(story.verification) ? (
                         <p className="mt-3 border-l-2 border-[#b76b23] bg-[#fff7e9] px-3 py-2 text-sm text-[#704719]">
                           The number check against trusted source text has not
-                          passed. This story cannot be approved.
+                          passed. This story stays out of the issue.
                         </p>
                       ) : null}
                       {story.rejectReason ? (
@@ -261,51 +259,14 @@ export function StoryBoard({
                       ) : null}
                       {story.isAiRelated === false ? (
                         <p className="mt-3 text-sm text-[#8e443c]">
-                          Gemini marked this story outside the magazine’s AI
-                          scope. Reject it or wait for new source evidence to
-                          trigger another AI check.
+                          The AI screen marked this story outside the
+                          publication scope. It stays out of the issue
+                          automatically; new source evidence can trigger another
+                          check.
                         </p>
                       ) : null}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {story.status !== "approved" ? (
-                        <form action={setStoryStatus}>
-                          <input
-                            type="hidden"
-                            name="storyId"
-                            value={story.id}
-                          />
-                          <input type="hidden" name="status" value="approved" />
-                          <Button
-                            type="submit"
-                            className="min-h-10 px-4 text-xs"
-                            disabled={Boolean(approvalBlockReason(story))}
-                            title={approvalBlockReason(story)}
-                          >
-                            {siteCopy.desk.approve}
-                          </Button>
-                        </form>
-                      ) : (
-                        <form action={setStoryStatus}>
-                          <input
-                            type="hidden"
-                            name="storyId"
-                            value={story.id}
-                          />
-                          <input
-                            type="hidden"
-                            name="status"
-                            value="candidate"
-                          />
-                          <Button
-                            type="submit"
-                            variant="secondary"
-                            className="min-h-10 px-4 text-xs"
-                          >
-                            Send back to review
-                          </Button>
-                        </form>
-                      )}
                       <form
                         action={setStoryStatus}
                         className="flex flex-wrap gap-2"

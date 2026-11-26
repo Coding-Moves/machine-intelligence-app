@@ -6,7 +6,7 @@ const editionId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const storyId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const texHash = "a".repeat(64);
 const createdAt = "2026-01-01T00:00:00.000Z";
-const publishTime = Date.parse(createdAt) + 14 * 24 * 60 * 60 * 1000;
+const publishTime = Date.parse(createdAt) + 7 * 24 * 60 * 60 * 1000;
 
 function readyInput(overrides = {}) {
   return {
@@ -20,38 +20,50 @@ function readyInput(overrides = {}) {
     editorNoteApproved: true,
     planUsesGemini: true,
     storyIds: [storyId],
-    approvedStoryIds: [storyId],
+    eligibleStoryIds: [storyId],
     stories: [
       {
         id: storyId,
-        status: "approved",
+        status: "ready",
         is_ai_related: true,
         verification: { failed: false, unsupported_numbers: [] },
         hasTrustedSource: true,
       },
     ],
     pendingAiReviews: 0,
-    pendingEditorReviews: 0,
     fullSourcePassComplete: true,
     now: publishTime,
     ...overrides,
   };
 }
 
-test("publishing becomes eligible exactly after 14 days when every check passes", () => {
+test("a ready story needs no individual editor approval", () => {
   const readiness = evaluatePublishReadiness(readyInput());
   assert.equal(readiness.canPublish, true);
   assert.equal(readiness.daysRemaining, 0);
   assert.deepEqual(readiness.blockers, []);
 });
 
-test("the 14-day wait is a hard minimum", () => {
+test("the seven-day wait is a hard minimum", () => {
   const readiness = evaluatePublishReadiness(
     readyInput({ now: publishTime - 1 }),
   );
   assert.equal(readiness.canPublish, false);
   assert.equal(readiness.daysRemaining, 1);
-  assert.match(readiness.blockers[0], /at least 14 days/);
+  assert.match(readiness.blockers[0], /at least 7 days/);
+});
+
+test("a reset publication window cannot be bypassed by an old draft creation date", () => {
+  const readiness = evaluatePublishReadiness(
+    readyInput({
+      publishNotBefore: "2026-02-01T00:00:00.000Z",
+      now: publishTime,
+    }),
+  );
+
+  assert.equal(readiness.canPublish, false);
+  assert.equal(readiness.daysRemaining, 24);
+  assert.match(readiness.blockers[0], /at least 7 days/);
 });
 
 test("a PDF compiled from an older magazine source cannot satisfy readiness", () => {
@@ -94,8 +106,7 @@ test("publication stays blocked for incomplete coverage, reviews, source pass, e
   const readiness = evaluatePublishReadiness(
     readyInput({
       pendingAiReviews: 1,
-      pendingEditorReviews: 1,
-      approvedStoryIds: [storyId, "cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
+      eligibleStoryIds: [storyId, "cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
       stories: [
         {
           ...readyInput().stories[0],
@@ -121,12 +132,12 @@ test("publication stays blocked for incomplete coverage, reviews, source pass, e
   );
 });
 
-test("duplicate or unapproved stories cannot satisfy the publication checklist", () => {
+test("duplicate or not-yet-eligible stories cannot satisfy the publication checklist", () => {
   const readiness = evaluatePublishReadiness(
     readyInput({
       storyIds: [storyId, storyId],
       stories: [readyInput().stories[0]],
-      approvedStoryIds: [storyId],
+      eligibleStoryIds: [storyId],
     }),
   );
 

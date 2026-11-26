@@ -13,6 +13,11 @@ import { requireEditor } from "@/lib/auth/require-editor";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import { getDraftPublishReadiness } from "@/lib/magazine/publication";
+import { PublicationEmailSettingsForm } from "@/components/publication-email-settings-form";
+import {
+  getPublicationEmailSettings,
+  isPublicationEmailProviderConfigured,
+} from "@/lib/magazine/publication-email-delivery";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -24,7 +29,7 @@ function asRecord(value: Json | undefined): Record<string, Json | undefined> {
 }
 
 export default async function DraftPage() {
-  await requireEditor();
+  const access = await requireEditor();
   const edition = await getDraftEdition();
   const copy = siteCopy.desk;
   if (!edition) {
@@ -39,6 +44,8 @@ export default async function DraftPage() {
   }
 
   const admin = createSupabaseAdminClient();
+  const emailSettings =
+    access.editor.role === "admin" ? await getPublicationEmailSettings() : null;
   const [texResult, pdfResult] = await Promise.all([
     edition.tex_path
       ? admin.storage.from("drafts").createSignedUrl(edition.tex_path, 3600)
@@ -47,8 +54,16 @@ export default async function DraftPage() {
       ? admin.storage.from("drafts").createSignedUrl(edition.pdf_path, 3600)
       : Promise.resolve({ data: null }),
   ]);
+  const pdfDownloadResult = edition.pdf_path
+    ? await admin.storage
+        .from("drafts")
+        .createSignedUrl(edition.pdf_path, 3600, {
+          download: "machine-intelligence-draft.pdf",
+        })
+    : { data: null };
   const texUrl = texResult.data?.signedUrl ?? null;
   const pdfUrl = pdfResult.data?.signedUrl ?? null;
+  const pdfDownloadUrl = pdfDownloadResult.data?.signedUrl ?? null;
   const publishReadiness = await getDraftPublishReadiness(edition);
   const layout = asRecord(edition.layout);
   const plan = asRecord(layout.plan);
@@ -105,15 +120,36 @@ export default async function DraftPage() {
 
       <Section contained={false} className="py-10 sm:py-14">
         <Container>
+          {emailSettings ? (
+            <div className="mb-8">
+              <PublicationEmailSettingsForm
+                recipients={emailSettings.recipients}
+                subject={emailSettings.subject}
+                body={emailSettings.body}
+                facultyApproved={emailSettings.faculty_approved}
+                recipientConsentConfirmed={
+                  emailSettings.recipient_consent_confirmed
+                }
+                providerConfigured={isPublicationEmailProviderConfigured()}
+                databaseReady={emailSettings.databaseReady}
+              />
+            </div>
+          ) : null}
           <DraftIssueEditor
             title={edition.title}
             template={template}
             editorNote={edition.editor_note ?? ""}
             editorNoteReviewed={edition.editor_note_approved}
             editionId={edition.id}
-            createdAt={edition.created_at}
+            publishNotBefore={
+              edition.publish_not_before ??
+              new Date(
+                Date.parse(edition.created_at) + 7 * 24 * 60 * 60 * 1000,
+              ).toISOString()
+            }
             publishReadiness={publishReadiness}
             pdfUrl={pdfUrl}
+            pdfDownloadUrl={pdfDownloadUrl}
             texUrl={texUrl}
             provider={provider}
             warning={warning}

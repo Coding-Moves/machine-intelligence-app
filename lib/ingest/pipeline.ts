@@ -11,10 +11,13 @@ import {
 } from "@/lib/ingest/rss";
 import { findMatchingStory, fingerprintTitle } from "@/lib/ingest/cluster";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchAllPages } from "@/lib/supabase/batched-query";
 import type { Json } from "@/lib/supabase/types";
 import { enrichPendingStories } from "@/lib/ingest/enrich";
 import { generateMissingStoryIllustrations } from "@/lib/ingest/illustrations";
 import { rebuildMagazineDraft } from "@/lib/magazine/build";
+import { MAX_ISSUE_COVERAGE_DAYS } from "@/lib/magazine/publication-readiness";
+import { shouldRebuildMagazineDraft } from "@/lib/magazine/rebuild-needed";
 
 const MAX_FULL_TEXT_REQUESTS_PER_SOURCE = 2;
 const URL_HASH_LOOKUP_BATCH_SIZE = 50;
@@ -113,7 +116,7 @@ export async function runIngest() {
     let duplicateArticles = 0;
     let skippedShortItems = 0;
     const storiesToEnrich = new Set<string>();
-    let approvedStoryChanged = false;
+    let issueStoriesChanged = false;
 
     for (const source of (sources ?? []) as IngestSource[]) {
       try {
@@ -212,8 +215,11 @@ export async function runIngest() {
 
           newArticles += 1;
           storiesToEnrich.add(stored.story_id);
-          if (matchingStory?.status === "approved") {
-            approvedStoryChanged = true;
+          if (
+            matchingStory?.status === "approved" ||
+            matchingStory?.status === "ready"
+          ) {
+            issueStoriesChanged = true;
           }
           if (stored.story_created) {
             newStories += 1;
@@ -256,6 +262,7 @@ export async function runIngest() {
     try {
       const enriched = await enrichPendingStories(supabase);
       enrichedStories = enriched.enrichedStories;
+      if (enrichedStories > 0) issueStoriesChanged = true;
       aiWarning = enriched.aiWarning;
       if (aiWarning)
         warnings.push({ source: "AI story writer", message: aiWarning });
@@ -267,6 +274,7 @@ export async function runIngest() {
     try {
       const illustrations = await generateMissingStoryIllustrations(supabase);
       generatedImages = illustrations.generatedImages;
+      if (generatedImages > 0) issueStoriesChanged = true;
       if (illustrations.imageWarning) {
         warnings.push({
           source: "AI illustrations",
@@ -281,7 +289,58 @@ export async function runIngest() {
     }
 
     let draft: Awaited<ReturnType<typeof rebuildMagazineDraft>> | null = null;
-    if (approvedStoryChanged) {
+    let draftNeedsRebuild = issueStoriesChanged;
+    if (!draftNeedsRebuild) {
+      const { data: currentDraft, error: draftError } = await supabase
+        .from("editions")
+        .select("id, tex_path, tex_hash, window_start, created_at, layout")
+        .eq("status", "draft")
+        .maybeSingle();
+      if (draftError) {
+        warnings.push({
+          source: "Magazine builder",
+          message:
+            "Could not check whether the current draft needs an initial build.",
+        });
+        draftNeedsRebuild = true;
+      } else if (!currentDraft?.tex_path || !currentDraft.tex_hash) {
+        draftNeedsRebuild = true;
+      } else {
+        const rollingCutoff = new Date(
+          Math.max(
+            Date.parse(currentDraft.window_start ?? currentDraft.created_at),
+            Date.now() - MAX_ISSUE_COVERAGE_DAYS * 24 * 60 * 60 * 1000,
+          ),
+        ).toISOString();
+        const { data: eligibleStories, error: eligibleError } =
+          await fetchAllPages((from, to) =>
+            supabase
+              .from("stories")
+              .select("id, summary, section")
+              .in("status", ["ready", "approved"])
+              .eq("is_ai_related", true)
+              .gte("first_seen_at", rollingCutoff)
+              .order("id", { ascending: true })
+              .range(from, to),
+          );
+        if (eligibleError) {
+          warnings.push({
+            source: "Magazine builder",
+            message:
+              "Could not compare the current magazine layout with eligible stories.",
+          });
+          draftNeedsRebuild = true;
+        } else {
+          draftNeedsRebuild = shouldRebuildMagazineDraft({
+            layout: currentDraft.layout,
+            eligibleStoryIds: (eligibleStories ?? [])
+              .filter((story) => story.section && story.summary?.trim())
+              .map((story) => story.id),
+          });
+        }
+      }
+    }
+    if (draftNeedsRebuild) {
       try {
         draft = await rebuildMagazineDraft();
       } catch (error) {
@@ -293,8 +352,7 @@ export async function runIngest() {
     }
 
     const result = {
-      ok:
-        sourceErrors.length === 0 && (!approvedStoryChanged || draft !== null),
+      ok: sourceErrors.length === 0 && (!draftNeedsRebuild || draft !== null),
       runId: run.id,
       sourcesProcessed: (sources ?? []).filter(
         (source) =>
