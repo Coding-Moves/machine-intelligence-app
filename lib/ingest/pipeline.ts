@@ -113,7 +113,7 @@ export async function runIngest() {
     let duplicateArticles = 0;
     let skippedShortItems = 0;
     const storiesToEnrich = new Set<string>();
-    let approvedStoryChanged = false;
+    let issueStoriesChanged = false;
 
     for (const source of (sources ?? []) as IngestSource[]) {
       try {
@@ -212,8 +212,11 @@ export async function runIngest() {
 
           newArticles += 1;
           storiesToEnrich.add(stored.story_id);
-          if (matchingStory?.status === "approved") {
-            approvedStoryChanged = true;
+          if (
+            matchingStory?.status === "approved" ||
+            matchingStory?.status === "ready"
+          ) {
+            issueStoriesChanged = true;
           }
           if (stored.story_created) {
             newStories += 1;
@@ -256,6 +259,7 @@ export async function runIngest() {
     try {
       const enriched = await enrichPendingStories(supabase);
       enrichedStories = enriched.enrichedStories;
+      if (enrichedStories > 0) issueStoriesChanged = true;
       aiWarning = enriched.aiWarning;
       if (aiWarning)
         warnings.push({ source: "AI story writer", message: aiWarning });
@@ -267,6 +271,7 @@ export async function runIngest() {
     try {
       const illustrations = await generateMissingStoryIllustrations(supabase);
       generatedImages = illustrations.generatedImages;
+      if (generatedImages > 0) issueStoriesChanged = true;
       if (illustrations.imageWarning) {
         warnings.push({
           source: "AI illustrations",
@@ -281,7 +286,25 @@ export async function runIngest() {
     }
 
     let draft: Awaited<ReturnType<typeof rebuildMagazineDraft>> | null = null;
-    if (approvedStoryChanged) {
+    let draftNeedsRebuild = issueStoriesChanged;
+    if (!draftNeedsRebuild) {
+      const { data: currentDraft, error: draftError } = await supabase
+        .from("editions")
+        .select("id, tex_path, tex_hash")
+        .eq("status", "draft")
+        .maybeSingle();
+      if (draftError) {
+        warnings.push({
+          source: "Magazine builder",
+          message:
+            "Could not check whether the current draft needs an initial build.",
+        });
+        draftNeedsRebuild = true;
+      } else {
+        draftNeedsRebuild = !currentDraft?.tex_path || !currentDraft?.tex_hash;
+      }
+    }
+    if (draftNeedsRebuild) {
       try {
         draft = await rebuildMagazineDraft();
       } catch (error) {
@@ -293,8 +316,7 @@ export async function runIngest() {
     }
 
     const result = {
-      ok:
-        sourceErrors.length === 0 && (!approvedStoryChanged || draft !== null),
+      ok: sourceErrors.length === 0 && (!draftNeedsRebuild || draft !== null),
       runId: run.id,
       sourcesProcessed: (sources ?? []).filter(
         (source) =>

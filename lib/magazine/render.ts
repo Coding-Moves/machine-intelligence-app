@@ -45,7 +45,7 @@ function renderCover(
   const color = themeColors[template.theme];
   const issueList = inThisIssue.length
     ? `\\begin{itemize}\n${inThisIssue.map((headline) => `\\item ${escapeTex(headline)}`).join("\n")}\n\\end{itemize}`
-    : "\\emph{Stories approved for this issue will appear here.}";
+    : "\\emph{Stories that pass the automatic source and scope checks will appear here.}";
 
   return [
     "\\thispagestyle{empty}",
@@ -211,7 +211,7 @@ export async function renderMagazineTex(input: {
         .sort((left, right) => left.order - right.order);
       if (!items.length) return "";
       const overLimit = items.length > section.slots;
-      const label = `${escapeTex(section.label)}${overLimit ? " -- APPROVED STORIES OVER SLOT TARGET" : ""}`;
+      const label = `${escapeTex(section.label)}${overLimit ? " -- STORIES BEYOND SECTION TARGET" : ""}`;
       const renderedItems = items
         .map((item) => {
           const story = storyById.get(item.storyId);
@@ -232,7 +232,8 @@ export async function renderMagazineTex(input: {
       input.editorNoteApproved,
       input.template,
     ),
-    sections || "\\emph{No stories have been approved for this issue yet.}",
+    sections ||
+      "\\emph{No stories have passed the automatic checks for this issue yet.}",
     renderBackCover(input.title, input.template, input.template.theme),
   ].join("\n\n");
   return templateFile

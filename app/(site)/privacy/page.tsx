@@ -43,6 +43,14 @@ export default function PrivacyPage() {
         </section>
         <section className="py-6">
           <h2 className="text-2xl tracking-tight">
+            {siteCopy.privacy.emailTitle}
+          </h2>
+          <p className="text-muted mt-3 text-sm leading-6">
+            {siteCopy.privacy.emailText}
+          </p>
+        </section>
+        <section className="py-6">
+          <h2 className="text-2xl tracking-tight">
             {siteCopy.privacy.aiTitle}
           </h2>
           <p className="text-muted mt-3 text-sm leading-6">

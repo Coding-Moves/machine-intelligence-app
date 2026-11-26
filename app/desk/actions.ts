@@ -22,16 +22,14 @@ import {
 } from "@/lib/magazine/template";
 import { getDraftPublishReadiness } from "@/lib/magazine/publication";
 import { unsupportedNumbers } from "@/lib/ingest/scoring";
-
-function hasPassedNumberCheck(value: unknown) {
-  return Boolean(
-    value &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    "failed" in value &&
-    value.failed === false,
-  );
-}
+import { dispatchDraftCompile } from "@/lib/magazine/compile-dispatch";
+import {
+  publicationEmailApprovalHash,
+  publicationRecipientConsentHash,
+  createPublicationUnsubscribeToken,
+  parsePublicationRecipients,
+} from "@/lib/magazine/publication-email";
+import { sendPublishedIssueEmail } from "@/lib/magazine/publication-email-delivery";
 
 export type EditorActionState = {
   message: string;
@@ -41,13 +39,23 @@ export type EditorActionState = {
 const emailSchema = z.string().trim().email();
 const nameSchema = z.string().trim().min(2).max(80);
 const storyIdSchema = z.string().uuid();
-const storyStatusSchema = z.enum(["candidate", "approved", "rejected"]);
+const storyStatusSchema = z.enum(["candidate", "rejected"]);
 const storySectionSchema = z.enum([
   "pakistan",
   "global",
   "research",
   "industry",
 ]);
+
+async function rebuildAndDispatchDraft() {
+  const rebuilt = await rebuildMagazineDraft();
+  await dispatchDraftCompile(rebuilt.editionId);
+}
+
+async function refreshAndDispatchDraft(editionId: string) {
+  await refreshDraftTex(editionId);
+  await dispatchDraftCompile(editionId);
+}
 
 async function getTrustedStoryEvidence(
   admin: ReturnType<typeof createSupabaseAdminClient>,
@@ -188,38 +196,11 @@ export async function setStoryStatus(formData: FormData) {
   const admin = createSupabaseAdminClient();
   const { data: story, error: lookupError } = await admin
     .from("stories")
-    .select("headline, summary, section, is_ai_related, status, verification")
+    .select("status, needs_reprocess")
     .eq("id", id.data)
     .maybeSingle();
   if (lookupError || !story) throw new Error("Could not find that story.");
-  if (
-    status.data === "approved" &&
-    (!story.headline.trim() || !story.summary?.trim() || !story.section)
-  ) {
-    throw new Error(
-      "Add a summary and choose a section before approving this story.",
-    );
-  }
-  if (status.data === "approved" && story.is_ai_related !== true) {
-    throw new Error(
-      "Gemini must confirm this story is about AI before it can be approved.",
-    );
-  }
-  if (status.data === "approved" && !hasPassedNumberCheck(story.verification)) {
-    throw new Error(
-      "The number check has not passed. Correct unsupported numbers against the trusted sources or reject the story before approval.",
-    );
-  }
-  if (
-    status.data === "approved" &&
-    (await getTrustedStoryEvidence(admin, id.data)).length === 0
-  ) {
-    throw new Error(
-      "This story needs at least one source marked trusted before approval.",
-    );
-  }
-
-  if (story.status === "approved" || status.data === "approved") {
+  if (story.status === "ready" || story.status === "approved") {
     await invalidateCurrentDraftArtifacts();
   }
 
@@ -227,6 +208,8 @@ export async function setStoryStatus(formData: FormData) {
     .from("stories")
     .update({
       status: status.data,
+      needs_reprocess:
+        status.data === "candidate" ? true : story.needs_reprocess,
       last_updated_at: new Date().toISOString(),
       reject_reason:
         status.data === "rejected" ? rejectReason.data || null : null,
@@ -237,8 +220,8 @@ export async function setStoryStatus(formData: FormData) {
     .maybeSingle();
   if (error || !updatedStory)
     throw new Error("Could not save the story review decision.");
-  if (story.status === "approved" || status.data === "approved") {
-    await rebuildMagazineDraft();
+  if (story.status === "ready" || story.status === "approved") {
+    await rebuildAndDispatchDraft();
   }
   revalidatePath("/desk/stories");
   revalidatePath("/desk/quarantine");
@@ -279,6 +262,7 @@ export async function saveStoryEdit(formData: FormData) {
   if (lookupError || !story) throw new Error("Could not find that story.");
   const trustedEvidence = await getTrustedStoryEvidence(admin, id.data);
   const sourceTexts = trustedEvidence.map((article) => article.content_text);
+  const hasTrustedEvidence = trustedEvidence.length > 0;
   const keyFacts = z
     .array(z.object({ value: z.string() }))
     .safeParse(story.key_facts);
@@ -289,7 +273,8 @@ export async function saveStoryEdit(formData: FormData) {
     ],
     sourceTexts,
   );
-  if (story.status === "approved") await invalidateCurrentDraftArtifacts();
+  if (story.status === "ready" || story.status === "approved")
+    await invalidateCurrentDraftArtifacts();
 
   const { data: updatedStory, error } = await admin
     .from("stories")
@@ -302,6 +287,18 @@ export async function saveStoryEdit(formData: FormData) {
         failed: unsupported.length > 0,
         unsupported_numbers: unsupported,
       },
+      status:
+        (story.status === "ready" || story.status === "approved") &&
+        (unsupported.length > 0 || !hasTrustedEvidence)
+          ? "rejected"
+          : story.status,
+      reject_reason:
+        (story.status === "ready" || story.status === "approved") &&
+        (unsupported.length > 0 || !hasTrustedEvidence)
+          ? !hasTrustedEvidence
+            ? "No trusted source evidence is currently linked to this story."
+            : `The automatic numeric check found claims not present in trusted source text: ${unsupported.join(", ")}.`
+          : null,
     })
     .eq("id", id.data)
     .neq("status", "published")
@@ -309,7 +306,8 @@ export async function saveStoryEdit(formData: FormData) {
     .maybeSingle();
   if (error || !updatedStory)
     throw new Error("Could not save the story changes.");
-  if (story.status === "approved") await rebuildMagazineDraft();
+  if (story.status === "ready" || story.status === "approved")
+    await rebuildAndDispatchDraft();
   revalidatePath("/desk/stories");
   revalidatePath("/desk");
 }
@@ -353,9 +351,9 @@ export async function setImageApproval(formData: FormData) {
       .eq("id", image.story_id)
       .maybeSingle();
     if (storyError) throw new Error("Could not load the illustration's story.");
-    if (story?.status === "approved") {
+    if (story?.status === "ready" || story?.status === "approved") {
       await invalidateCurrentDraftArtifacts();
-      await rebuildMagazineDraft();
+      await rebuildAndDispatchDraft();
     }
   }
 
@@ -427,9 +425,10 @@ export async function saveDraftTemplateAction(formData: FormData) {
     template: template.data,
   });
   if (sectionLayoutChanged(current.sections, template.data.sections)) {
-    await rebuildMagazineDraft({ preserveEditorNote: true });
+    const rebuilt = await rebuildMagazineDraft({ preserveEditorNote: true });
+    await dispatchDraftCompile(rebuilt.editionId);
   } else {
-    await refreshDraftTex(editionId);
+    await refreshAndDispatchDraft(editionId);
   }
   revalidatePath("/desk");
   revalidatePath("/desk/issues");
@@ -449,15 +448,192 @@ export async function saveDraftEditorNoteAction(formData: FormData) {
     );
   }
   const editionId = await saveDraftEditorNote({ note: note.data, approved });
-  await refreshDraftTex(editionId);
+  await refreshAndDispatchDraft(editionId);
   revalidatePath("/desk");
+}
+
+export async function savePublicationEmailSettings(
+  _previousState: EditorActionState,
+  formData: FormData,
+): Promise<EditorActionState> {
+  const actor = await verifyAdmin();
+  const recipientsText = z
+    .string()
+    .max(5000)
+    .safeParse(formData.get("recipients"));
+  const subject = z
+    .string()
+    .trim()
+    .min(4)
+    .max(180)
+    .safeParse(formData.get("subject"));
+  const body = z
+    .string()
+    .trim()
+    .min(40)
+    .max(5000)
+    .safeParse(formData.get("body"));
+  if (!recipientsText.success || !subject.success || !body.success) {
+    return {
+      message:
+        "Add recipients, a subject, and an email message within the length limits.",
+      kind: "error",
+    };
+  }
+
+  let recipients: string[];
+  try {
+    recipients = parsePublicationRecipients(recipientsText.data);
+  } catch (error) {
+    return {
+      message:
+        error instanceof Error
+          ? error.message
+          : "Check the recipient addresses.",
+      kind: "error",
+    };
+  }
+  const invalidTokens = [subject.data, body.data].some((value) => {
+    const tokens = value.match(/{{[^}]+}}/g) ?? [];
+    return tokens.some(
+      (token) =>
+        !["{{issue_title}}", "{{issue_url}}", "{{issue_date}}"].includes(token),
+    );
+  });
+  if (invalidTokens) {
+    return {
+      message:
+        "Use only {{issue_title}}, {{issue_url}}, and {{issue_date}} as message placeholders.",
+      kind: "error",
+    };
+  }
+
+  const facultyApproved = formData.get("facultyApproved") === "on";
+  const consentConfirmed = formData.get("recipientConsentConfirmed") === "on";
+  const approvedHash = publicationEmailApprovalHash({
+    recipients,
+    subject: subject.data,
+    body: body.data,
+  });
+  const admin = createSupabaseAdminClient();
+  const { data: previousSettings, error: previousError } = await admin
+    .from("publication_email_settings")
+    .select("*")
+    .eq("id", true)
+    .maybeSingle();
+  if (previousError) {
+    return {
+      message: "Could not read the current email approval.",
+      kind: "error",
+    };
+  }
+  const previousHash = previousSettings
+    ? publicationEmailApprovalHash(previousSettings)
+    : null;
+  if (consentConfirmed) {
+    const { error: consentError } = await admin.rpc(
+      "record_publication_email_consent",
+      {
+        p_emails: recipients,
+        p_tokens: recipients.map(() => createPublicationUnsubscribeToken()),
+      },
+    );
+    if (consentError) {
+      return {
+        message: "Could not save recipient consent and unsubscribe settings.",
+        kind: "error",
+      };
+    }
+  }
+  const changedAfterApproval =
+    previousSettings?.faculty_approved_hash === previousHash &&
+    previousHash !== approvedHash;
+  if (facultyApproved && changedAfterApproval) {
+    return {
+      message:
+        "These details changed after faculty approval. Save them with the approval box clear, obtain approval for the updated version, then check and save again.",
+      kind: "error",
+    };
+  }
+  const { error } = await admin.from("publication_email_settings").upsert({
+    id: true,
+    recipients,
+    subject: subject.data,
+    body: body.data,
+    faculty_approved_hash: facultyApproved ? approvedHash : null,
+    consent_confirmed_hash: consentConfirmed
+      ? publicationRecipientConsentHash(recipients)
+      : null,
+    updated_at: new Date().toISOString(),
+    updated_by: actor.email,
+  });
+  if (error)
+    return {
+      message: "Could not save publication email settings.",
+      kind: "error",
+    };
+  revalidatePath("/desk");
+  revalidatePath("/desk/issues");
+  return {
+    message: facultyApproved
+      ? "Email settings saved with faculty approval for this exact template and recipient list."
+      : "Email settings saved. The faculty-approved checkbox is clear, so sending is disabled.",
+    kind: "success",
+  };
+}
+
+export async function sendPublishedIssueEmailAction(
+  _previousState: EditorActionState,
+  formData: FormData,
+): Promise<EditorActionState> {
+  const actor = await verifyAdmin();
+  const editionId = storyIdSchema.safeParse(formData.get("editionId"));
+  const issueApproval = formData.get("issueApproved") === "on";
+  const confirmNoPreviousDelivery =
+    formData.get("confirmNoPreviousDelivery") === "on";
+  if (!editionId.success || !issueApproval) {
+    return {
+      message:
+        "Confirm faculty approval of this exact published issue before emailing it.",
+      kind: "error",
+    };
+  }
+  try {
+    const result = await sendPublishedIssueEmail({
+      editionId: editionId.data,
+      approver: actor.email,
+      confirmNoPreviousDelivery,
+    });
+    revalidatePath("/desk/issues");
+    return {
+      message: `Sent the PDF to ${result.sentCount} recipient${result.sentCount === 1 ? "" : "s"}.${result.skippedCount ? ` Skipped ${result.skippedCount} unsubscribed recipient${result.skippedCount === 1 ? "" : "s"}.` : ""}`,
+      kind: "success",
+    };
+  } catch (error) {
+    revalidatePath("/desk/issues");
+    return {
+      message:
+        error instanceof Error
+          ? error.message
+          : "Could not send the issue email.",
+      kind: "error",
+    };
+  }
 }
 
 export async function rebuildDraftAction() {
   await requireEditor();
-  await rebuildMagazineDraft();
+  await rebuildAndDispatchDraft();
   revalidatePath("/desk");
   revalidatePath("/desk/stories");
+}
+
+export async function compileDraftAction(formData: FormData) {
+  await requireEditor();
+  const id = storyIdSchema.safeParse(formData.get("editionId"));
+  if (!id.success) throw new Error("Invalid draft edition.");
+  await dispatchDraftCompile(id.data);
+  revalidatePath("/desk");
 }
 
 export async function publishDraftAction(formData: FormData) {

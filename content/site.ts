@@ -20,7 +20,7 @@ export const siteCopy = {
     eyebrow: "The AI department magazine",
     title: "A clearer view of what is changing in AI.",
     intro:
-      "Machine Intelligence follows important AI news, research, and work in Pakistan. Student editors check every story before it appears in an issue.",
+      "Machine Intelligence follows AI and related computing news, research, and work in Pakistan. Gemini checks trusted-source evidence and places eligible stories in the draft; editors review the complete issue before publication.",
     latest: "Read the latest issue",
     sampleButton: "Open the May sample preview",
     browse: "Browse issues",
@@ -44,13 +44,13 @@ export const siteCopy = {
       },
       {
         number: "02",
-        title: "Editors check each story",
-        text: "Editors review the source links, facts, and summaries. They decide what belongs in the magazine.",
+        title: "AI screens each story",
+        text: "Gemini keeps stories about AI, computer science, data science, and related computing. It checks each summary against trusted-source text; out-of-scope stories and unsupported numbers go to quarantine automatically.",
       },
       {
         number: "03",
-        title: "The issue is reviewed",
-        text: "Gemini arranges the approved stories into a full draft. Editors review the stories and note, and the issue stays in draft for at least 14 days before it can be published.",
+        title: "A complete issue is built",
+        text: "Gemini places every eligible story in the editable magazine template, drafts the editor's note, and creates the LaTeX and PDF. An editor reviews the issue before publication; each issue stays in draft for at least seven days and covers up to 30 days of news.",
       },
     ],
     closeEyebrow: "For the next generation of builders",
@@ -109,18 +109,18 @@ export const siteCopy = {
       },
       {
         number: "02",
-        title: "Check the details",
-        text: "Editors compare names, dates, and numbers with the original reporting. Stories with unclear or unsupported claims can be held or rejected.",
+        title: "Check scope and evidence",
+        text: "Gemini screens for AI, computer science, data science, and related computing news. It uses trusted sources only, and stories with unsupported numbers are automatically excluded.",
       },
       {
         number: "03",
         title: "Build and review the issue",
-        text: "Gemini suggests the order and presentation of approved stories and drafts an editor's note. Editors review the layout and note, check every story, and decide what may be published. An issue stays in draft for at least 14 days, and publication is blocked while any AI check, editor decision, or PDF build is unfinished.",
+        text: "Gemini places every eligible story in the magazine template, drafts an editor's note, and prepares the current LaTeX and PDF. No individual story approval is needed. An editor reviews the complete issue and note; publication opens after seven days, the trusted feeds have been checked, and the latest PDF is ready.",
       },
     ],
     ruleTitle: "The source rule",
     ruleText:
-      "A summary should not add facts that are missing from its linked sources. If the sources do not support a claim, the editors should leave it out or explain the uncertainty.",
+      "A summary should not add facts that are missing from its linked sources. If the sources do not support a claim, the automatic checks keep the story out of the draft until new evidence arrives.",
   },
   privacy: {
     eyebrow: "Privacy",
@@ -136,9 +136,12 @@ export const siteCopy = {
     storageTitle: "Issue files",
     storageText:
       "Published issue files may be publicly available. Draft files are kept in private storage for editors.",
+    emailTitle: "Issue email",
+    emailText:
+      "The newsroom stores its issue-recipient list, consent records, unsubscribe tokens, and reusable message in private database tables. An admin must confirm that recipients opted in and faculty must approve the saved email and each exact issue before sending. Resend receives each recipient's address, message, and PDF separately. Recipients can unsubscribe from future issues; that preference is retained. The newsroom keeps per-recipient delivery status and provider references for duplicate protection and troubleshooting.",
     aiTitle: "AI-assisted editing",
     aiText:
-      "Trusted source article text may be sent to Google's Gemini API to draft summaries and scores. Approved story summaries and key facts may be sent to suggest an issue layout and draft an editor's note. Gemini results are checked for unsupported numbers, then editors review the sources and make all approval and publication decisions. Without a Gemini API key, new items remain queued and the issue cannot pass its publication checks.",
+      "Trusted source article text may be sent to Google's Gemini API to draft summaries and scores. Eligible story summaries and key facts may be sent to suggest an issue layout and draft an editor's note. Gemini results are checked for unsupported numbers; editors review the complete issue before publication. Without a Gemini API key, new items remain queued and the issue cannot pass its publication checks.",
     contactTitle: "Questions",
     contactText:
       "For a privacy question, contact the editorial team through the repository's issue tracker.",
@@ -187,7 +190,7 @@ export const siteCopy = {
       { href: "/desk/editors", label: "Editors", adminOnly: true },
     ],
     draftTitle: "Draft issue",
-    lastUpdated: "Built from the latest approved stories",
+    lastUpdated: "Built from the latest eligible stories",
     rebuild: "Rebuild magazine",
     downloadPdf: "Download the current draft PDF",
     downloadOverleaf: "Overleaf export is not connected yet",
@@ -198,32 +201,32 @@ export const siteCopy = {
       "The current draft PDF is waiting for its next successful compile.",
     storiesTitle: "Stories",
     storiesIntro:
-      "Review stories from trusted feeds. Approve a story only after Gemini confirms it is AI-related, the number check passes, and you have checked its trusted source.",
+      "Gemini checks trusted-source evidence and topic scope. Eligible stories enter the draft automatically; editors can reject or edit them, with no per-story approval step.",
     quarantineTitle: "Quarantine",
     quarantineIntro:
-      "Rejected stories stay out of the draft. Restore one to return it to the review list.",
+      "Rejected stories stay out of the draft. Restore one to run its automatic checks again.",
     sourcesTitle: "Sources",
     sourcesIntro:
       "Only feeds marked trusted are collected twice a day. Ask the admin to verify a new publisher before adding its feed to the trusted list.",
     imagesTitle: "Images",
-    imagesIntro: "Manage images approved for use in a magazine issue.",
+    imagesIntro:
+      "Generated editorial illustrations enter the draft automatically. Editors can exclude them from the magazine.",
     issuesTitle: "Issues",
     issuesIntro: "View the editions stored for the magazine.",
     editorsTitle: "Editors",
     editorsIntro:
       "Only add current NFC-IET students. Each editor also needs a Supabase Auth account with a password.",
-    approve: "Approve",
     reject: "Not this one",
     edit: "Edit",
     restore: "Bring it back",
     addEditor: "Add editor",
     savingEditor: "Saving…",
     removeEditor: "Remove",
-    noStories: "No stories to review.",
+    noStories: "No current stories yet.",
     noRejected: "No rejected stories.",
     noEditors: "No editors are configured yet.",
     upload: "Upload image",
-    imageEmpty: "Approved issue images will be listed here.",
+    imageEmpty: "Magazine illustrations will be listed here.",
     issueEmpty: "No editions have been created yet.",
     signOut: "Sign out",
     currentUser: "Signed in as",
@@ -232,8 +235,9 @@ export const siteCopy = {
     score: "Score",
     reason: "Reason",
     statusLabels: {
-      approved: "Approved",
-      candidate: "Candidate",
+      ready: "Ready for magazine",
+      approved: "Ready for magazine",
+      candidate: "AI check pending",
       rejected: "Rejected",
       published: "Published",
     },

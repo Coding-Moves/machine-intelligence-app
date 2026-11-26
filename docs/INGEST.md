@@ -53,37 +53,37 @@ database function inserts the article and its story link in one transaction.
 
 The ingest route groups stories by a conservative title-token match within five
 days. Gemini writes source-grounded summaries, links key facts to the evidence
-article, assigns an AI section and relevance scores, and marks stories that are
-not about AI. Each story also gets a plain-language editorial assessment that
-states why it matters, what the available evidence supports, and any important
-limits.
+article, assigns a section and relevance scores, and screens for AI, computer
+science, data science, and related computing topics. Stories outside that scope
+and stories with unsupported numbers are excluded automatically. Each story also
+gets a plain-language editorial assessment that states why it matters, what the
+available evidence supports, and any important limits.
 
 The priority score combines AI news value (35%), Pakistan relevance (25%),
 trusted-source coverage (20%), and freshness (20%), then adjusts it by the
 average trust weight of its sources. The editor desk shows these four values and
-the calculation. It is a sorting aid, not a fact-check or an approval decision.
+the calculation. It is a sorting aid, not a fact-check or publication decision.
 A code check flags numbers in the summary or key facts that do not appear in the
 trusted source text. This catches unsupported numeric claims; it does not prove
-every sentence, so an editor must still read the source links and approve or
-reject each AI story. RSS excerpts with at least 100 characters are used as
-fallbacks when page extraction is unavailable. Shorter items are reported as
-incomplete source coverage, retried by a later scheduled run, and keep
-publishing locked until Gemini has enough text to review them.
+every sentence. Editors review the complete issue before publication. RSS
+excerpts with at least 100 characters are used as fallbacks when page extraction
+is unavailable. Shorter items are reported as incomplete source coverage and
+retried by a later scheduled run.
 
-For eligible AI stories, Gemini creates up to two original editorial
+For eligible computing stories, Gemini creates up to two original editorial
 illustrations per ingest run, starting with the highest-scoring stories that do
 not already have a publication-owned illustration. The illustration is stored
-in the private `drafts` bucket and appears in the editor's Images page as
-pending review. Only an editor-approved illustration enters the LaTeX issue;
+in the private `drafts` bucket and automatically marked for use. Editors can
+exclude an illustration from the LaTeX issue;
 the PDF workflow downloads it through a short-lived signed URL and checks its
 file type and size. Generated art is labeled as an illustration, not as a real
 news photograph. The app does not copy a publisher's Open Graph image because a
 trusted news source does not by itself grant image reuse rights. Failed image
 generation stays queued for a later ingest run.
 
-Gemini checks up to six pending stories per run. The twice-daily schedule can
-leave a queue when feeds are especially busy; the publish checklist blocks the
-issue until every pending AI check and editor decision is complete. A successful
+Gemini checks up to twenty pending stories per run. The twice-daily schedule can
+leave a queue when feeds are especially busy; the publish checklist waits for
+pending AI checks to finish, with no per-story editor approval step. A successful
 full pass across all trusted feeds is also required in each issue cycle. The
 latest ingest attempt in the cycle must succeed; a newer partial or failed pass
 keeps publishing locked until the feeds are checked successfully again.

@@ -35,7 +35,7 @@ const stories = [
   },
 ];
 
-test("fallback fits every approved story to target slots and briefs overflow", () => {
+test("fallback lays out every eligible story and briefs overflow", () => {
   const items = createFallbackLayout(stories, sections);
 
   assert.equal(items.length, stories.length);

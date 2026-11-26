@@ -12,6 +12,11 @@ const serverEnvironmentSchema = publicEnvironmentSchema.extend({
   WRITER_MODEL: z.string().optional(),
   DESIGNER_MODEL: z.string().optional(),
   GITHUB_DISPATCH_TOKEN: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  PUBLICATION_FROM_EMAIL: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().email().optional(),
+  ),
   APP_URL: z.preprocess(
     (value) => (value === "" ? undefined : value),
     z.string().url().optional(),

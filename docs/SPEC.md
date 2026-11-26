@@ -9,13 +9,14 @@ Build it phase by phase (prompts at the bottom).
 
 ## 1. What the app does (one paragraph)
 
-Twice a day, a scheduled job collects AI news from an explicit trusted RSS allowlist, groups
-duplicate articles into one "story", asks Gemini to summarise and score each story, and builds
-a **living draft magazine** (LaTeX + PDF). Editors approve or reject AI-related stories. An
-issue cannot be published until at least 14 days have passed, all trusted sources have had a
-successful pass, all AI and editor queues are clear, every approved story is included, its
-editor note is approved, and its latest PDF is compiled. Publishing freezes the issue and
-opens the next draft.
+Twice a day, a scheduled job collects AI and related computing news from an explicit trusted RSS
+allowlist, groups duplicate articles into one "story", asks Gemini to screen, summarise, and score
+each story, and builds a **living draft magazine** (LaTeX + PDF). Stories become eligible
+automatically when scope, trusted-source, and numeric checks pass; other stories are excluded
+without individual editor approval. An issue cannot be published until at least seven days have
+passed, all trusted sources have had a successful pass, every eligible story is included, its
+editor note is approved, and its latest PDF is compiled. Draft coverage is limited to a rolling
+30-day window. Publishing freezes the issue and opens the next draft.
 
 ---
 
@@ -56,8 +57,8 @@ GitHub Actions cron (08:00 and 20:00 PKT)
 Dashboard always shows: latest draft PDF + story cards + quarantine
 ```
 
-Approve / reject in the dashboard also re-runs step 6 + 7 (draft rebuild), so the PDF updates
-within a few minutes.
+Eligible stories flow into the draft automatically. Rejecting a story or editing an included story
+re-runs the layout and PDF build; there is no per-story approval action.
 
 ---
 
@@ -89,7 +90,7 @@ stories (
   ai_importance int,        -- 1..10 from Gemini
   ai_pakistan_relevance int,-- 1..10 from Gemini
   final_score numeric,
-  status text check (status in ('candidate','approved','rejected','published'))
+  status text check (status in ('candidate','ready','approved','rejected','published'))
          default 'candidate',
   reject_reason text null,
   first_seen_at timestamptz, last_updated_at timestamptz,
@@ -103,6 +104,7 @@ editions (
   id uuid pk, title text,           -- e.g. "December 2026 — Issue 2"
   status text check (status in ('draft','published')),
   window_start timestamptz,         -- only stories first_seen after this are eligible
+  publish_not_before timestamptz,   -- hard minimum review date for this issue
   layout jsonb,                     -- AI layout (see 8)
   tex_path text, pdf_path text,     -- Supabase Storage paths
   editor_note text, editor_note_approved bool default false,
@@ -200,7 +202,7 @@ neutral tone; if `is_ai_related=false` the story is dropped.
 
 **7c. Number check (no AI, plain code):** every number in `summary` and `key_facts` must
 appear in at least one trusted source article's text. If not, mark `verification.failed=true`.
-This is a numeric check, not proof of every sentence; editors still review source links.
+This is a numeric check, not proof of every sentence; editors can review source links and the full issue.
 
 **7d. Layout** (one call per draft rebuild, see section 8).
 
@@ -217,13 +219,14 @@ name, so it's never published until an editor ticks "Editor's note reviewed".
 pakistan: 3   global: 4   research: 3   industry: 4
 ```
 
-**Selection algorithm** (runs after every ingest and after every approve/reject):
+**Selection algorithm** (runs after each ingest and editor update):
 
-1. The draft builder lays out all current-cycle **approved**, AI-confirmed stories. Stories
-   awaiting Gemini or editor review remain outside the issue plan and block publication.
-2. Rejected stories are never used. An editor's decision triggers a fresh plan.
-3. If a section has more approved stories than slots, keep them all as features/briefs; never
-   omit approved coverage to fit a target.
+1. Gemini screens new stories. Stories that pass scope, trusted-source, and number checks get
+   `status='ready'` and enter the latest draft automatically; no editor has to approve them one by one.
+   Stories awaiting Gemini stay out of the layout and block publication until automatic checks finish.
+2. Rejected stories are never used. New source evidence triggers another automatic check.
+3. If a section has more ready stories than slots, keep them all as features/briefs; never omit
+   eligible coverage to fit a target.
 
 **Layout step:** send the chosen stories (headline, summary, facts, section) to Gemini and get back
 **JSON only, never LaTeX**:
@@ -256,13 +259,18 @@ Validate it with Zod. If it's invalid, retry once, then fall back to a simple de
 
 ## 9. Editions (fresh news every time)
 
-- **Download draft:** anytime, gives the latest compiled PDF (and a .zip with .tex + images for Overleaf).
-- **Publish edition** button (enabled only after the 14-day minimum and every source, AI,
-  editor-review, story-coverage, trusted-evidence, editor-note, and current-PDF check passes):
+- **Download draft:** the Draft page shows the latest compiled PDF preview, a PDF download, and a TeX-source download. The source and its PDF are tied to a content hash so an old PDF cannot satisfy the current issue check.
+- **Publish edition** button (enabled only after the seven-day minimum and every source, AI,
+  story-coverage, trusted-evidence, editor-note, and current-PDF check passes):
   1. Freeze: edition `status='published'`, store the final .tex, PDF and layout.
   2. All its stories get `status='published'`, `edition_id=this`.
-  3. Create a new draft edition with `window_start = now() - 2 days` (small overlap so late updates aren't lost).
+  3. Create a new draft edition with `window_start = now() - 30 days` for rolling issue coverage.
   4. Stories already published are never eligible again, so the next magazine always has new news.
+  5. After publication, an admin can send from the Issues page only after faculty approves the exact
+     PDF and saved recipient/message template. Each recipient must have opted in, and the admin
+     attests to that consent. Email is sent individually with a visible unsubscribe link and one-click
+     headers; an unsubscribe permanently suppresses future sends to that address. Use a verified
+     publication sender; never impersonate a professor.
 - **Archive** page: list of past editions with their PDFs.
 
 ---
@@ -272,12 +280,12 @@ Validate it with Zod. If it's invalid, retry once, then fall back to a simple de
 1. **Draft** — embedded PDF preview, "Rebuild now", "Download PDF", "Download .zip for Overleaf",
    "Publish edition". Shows the last cron run time and the compile status.
 2. **Stories** — cards grouped by section, sorted by score. Each card: headline, summary, score
-   breakdown, source links, badges (IN DRAFT / UPDATED / NUMBER CHECK FAILED), image thumb,
-   buttons **Approve / Reject (reason) / Edit**.
+   breakdown, source links, badges (READY / IN DRAFT / UPDATED / NUMBER CHECK FAILED), image thumb,
+   and **Reject (reason) / Edit** actions. Eligible stories enter the issue automatically.
 3. **Quarantine** — rejected stories with their reason, button **Restore**.
 4. **Sources** — add/disable feeds, edit trust weight.
-5. **Images** — upload an image, set credit + license, approve. Only approved images go in the PDF.
-   Source `og:image` is suggested but marked "needs review" (copyright: it's an official publication).
+5. **Images** — publication-owned AI illustrations are included automatically and can be excluded.
+   Source `og:image` is not copied because source trust does not grant image reuse rights.
 6. **Archive** — published editions.
 
 Login: Supabase email-and-password sign-in. Only Auth users whose email is in the
@@ -323,7 +331,7 @@ does not guarantee that every project will avoid pausing. Monitor project activi
 ```
 /app                  Next.js pages + API routes
   /api/cron/ingest
-  /api/stories/[id]/approve | reject | restore
+  /api/stories/[id]/reject | restore
   /api/draft/rebuild | publish
   /api/compile/callback
 /lib
@@ -378,8 +386,8 @@ Run typecheck + lint **once at the end of the phase**, then report.
 
 > Build the pages in section 10 (Draft can be a placeholder for now): Stories, Quarantine,
 > Sources, Images, login with Supabase email and password and the editors allowlist.
-> Approve/reject/restore
-> APIs must trigger a draft rebuild (stub for now).
+> Eligible stories should enter the draft automatically. Editors can reject or restore a story,
+> but there must be no per-story approval action. Rejection and edits trigger a draft rebuild.
 
 **Phase 5 — Draft builder + compile**
 

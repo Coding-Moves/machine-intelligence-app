@@ -38,14 +38,13 @@ export default async function ImagesPage() {
   const storyById = new Map((stories ?? []).map((story) => [story.id, story]));
 
   const { data: signedImages, error: signedImagesError } = rows?.length
-    ? await admin.storage
-        .from("drafts")
-        .createSignedUrls(
-          rows.map((image) => image.storage_path),
-          3600,
-        )
+    ? await admin.storage.from("drafts").createSignedUrls(
+        rows.map((image) => image.storage_path),
+        3600,
+      )
     : { data: [], error: null };
-  if (signedImagesError) throw new Error("Could not sign illustration previews.");
+  if (signedImagesError)
+    throw new Error("Could not sign illustration previews.");
   const imageByPath = new Map(
     (rows ?? []).map((image) => [image.storage_path, image]),
   );
@@ -60,14 +59,14 @@ export default async function ImagesPage() {
       <PageHeading
         eyebrow={siteCopy.desk.imagesTitle}
         title={siteCopy.desk.imagesTitle}
-        description="Gemini creates original editorial illustrations for AI stories. Review each one before it is placed in the magazine; unapproved images stay out of the PDF."
+        description="Gemini creates original illustrations for eligible stories. They enter the magazine automatically and are clearly labeled as illustrations, not real news photographs. Editors can exclude any image."
       />
       <p className="text-muted mt-4 max-w-3xl text-sm leading-6">
         The ingest job generates up to two illustrations per run for the
-        highest-priority AI stories that do not have one yet. Generated art is
-        an illustration, not a documentary photo. Publisher preview images are
-        not copied because a trusted news source does not automatically grant
-        reuse rights.
+        highest-priority eligible stories that do not have one yet. Generated
+        art is an illustration, not a documentary photo. Publisher preview
+        images are not copied because a trusted news source does not
+        automatically grant image reuse rights.
       </p>
       <div className="mt-10">
         {!visible.length ? (
@@ -101,7 +100,9 @@ export default async function ImagesPage() {
                   <div className="space-y-3 p-5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-xs font-semibold tracking-wide uppercase">
-                        {image.approved ? "Approved for issue" : "Needs review"}
+                        {image.approved
+                          ? "Included automatically"
+                          : "Excluded from issue"}
                       </span>
                       <span className="text-muted text-xs">
                         {new Date(image.created_at).toLocaleDateString()}
@@ -129,8 +130,8 @@ export default async function ImagesPage() {
                         className="min-h-10 px-4 text-xs"
                       >
                         {image.approved
-                          ? "Remove from issue"
-                          : "Approve illustration"}
+                          ? "Exclude illustration"
+                          : "Include in issue"}
                       </Button>
                     </form>
                   </div>

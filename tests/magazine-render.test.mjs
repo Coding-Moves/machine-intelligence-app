@@ -98,7 +98,7 @@ test("magazine renderer escapes hostile story text and keeps notes clearly label
       },
       {
         id: briefStoryId,
-        headline: "A second approved story",
+        headline: "A second eligible story",
         summary:
           "This story is rendered as a brief because the section target is one.",
         section: "pakistan",
@@ -121,8 +121,9 @@ test("magazine renderer escapes hostile story text and keeps notes clearly label
     new RegExp(`\\\\includegraphics\\[[^\\]]+\\]\\{images/${storyId}\\.png\\}`),
   );
   assert.doesNotMatch(tex, /secret\.tex/);
-  assert.match(tex, /APPROVED STORIES OVER SLOT TARGET/);
-  assert.match(tex, /A second approved story/);
+  assert.match(tex, /STORIES BEYOND SECTION TARGET/);
+  assert.doesNotMatch(tex, /APPROVED STORIES/);
+  assert.match(tex, /A second eligible story/);
   assert.match(tex, /\\small This story is rendered as a brief/);
   assert.match(tex, /AI \\& 50\\% \\textbackslash\{\}input/);
   assert.doesNotMatch(tex, /\\input\{secret\}/);
@@ -130,9 +131,6 @@ test("magazine renderer escapes hostile story text and keeps notes clearly label
   if (process.env.WRITE_LATEX_SMOKE === "1") {
     await writeFile("latex/generated-render-smoke.tex", tex, "utf8");
     await mkdir("latex/images", { recursive: true });
-    await writeFile(
-      `latex/images/${storyId}.png`,
-      createSmokePng(),
-    );
+    await writeFile(`latex/images/${storyId}.png`, createSmokePng());
   }
 });

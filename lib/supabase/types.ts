@@ -11,7 +11,8 @@ export type EditionStatus = "draft" | "published";
 export type SourceRegion = "pakistan" | "global";
 export type SourceKind = "news" | "official_blog" | "research" | "government";
 export type StorySection = "pakistan" | "global" | "research" | "industry";
-export type StoryStatus = "candidate" | "approved" | "rejected" | "published";
+export type StoryStatus =
+  "candidate" | "ready" | "approved" | "rejected" | "published";
 export type ImageLicense =
   "press_kit" | "wikimedia_cc" | "own" | "source_og_needs_review";
 
@@ -250,6 +251,125 @@ export interface Database {
         };
         Relationships: [];
       };
+      publication_email_settings: {
+        Row: {
+          id: boolean;
+          recipients: string[];
+          subject: string;
+          body: string;
+          faculty_approved_hash: string | null;
+          consent_confirmed_hash: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          recipients?: string[];
+          subject?: string;
+          body?: string;
+          faculty_approved_hash?: string | null;
+          consent_confirmed_hash?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          recipients?: string[];
+          subject?: string;
+          body?: string;
+          faculty_approved_hash?: string | null;
+          consent_confirmed_hash?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      publication_email_recipients: {
+        Row: {
+          email: string;
+          unsubscribe_token: string;
+          consented_at: string | null;
+          unsubscribed_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          email: string;
+          unsubscribe_token: string;
+          consented_at?: string | null;
+          unsubscribed_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          email?: string;
+          unsubscribe_token?: string;
+          consented_at?: string | null;
+          unsubscribed_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      publication_email_deliveries: {
+        Row: {
+          id: string;
+          edition_id: string;
+          recipient: string;
+          subject: string;
+          body: string;
+          idempotency_key: string;
+          status:
+            "pending" | "sending" | "sent" | "failed" | "unknown" | "skipped";
+          provider_id: string | null;
+          last_error: string | null;
+          approved_by: string;
+          attempted_at: string | null;
+          sent_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          edition_id: string;
+          recipient: string;
+          subject: string;
+          body: string;
+          idempotency_key: string;
+          status?:
+            "pending" | "sending" | "sent" | "failed" | "unknown" | "skipped";
+          provider_id?: string | null;
+          last_error?: string | null;
+          approved_by: string;
+          attempted_at?: string | null;
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          edition_id?: string;
+          recipient?: string;
+          subject?: string;
+          body?: string;
+          idempotency_key?: string;
+          status?:
+            "pending" | "sending" | "sent" | "failed" | "unknown" | "skipped";
+          provider_id?: string | null;
+          last_error?: string | null;
+          approved_by?: string;
+          attempted_at?: string | null;
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "publication_email_deliveries_edition_id_fkey";
+            columns: ["edition_id"];
+            isOneToOne: false;
+            referencedRelation: "editions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       editions: {
         Row: {
           id: string;
@@ -257,6 +377,7 @@ export interface Database {
           title: string;
           status: EditionStatus;
           window_start: string | null;
+          publish_not_before: string | null;
           layout: Json;
           tex_path: string | null;
           tex_hash: string | null;
@@ -276,6 +397,7 @@ export interface Database {
           title: string;
           status?: EditionStatus;
           window_start?: string | null;
+          publish_not_before?: string | null;
           layout?: Json;
           tex_path?: string | null;
           tex_hash?: string | null;
@@ -295,6 +417,7 @@ export interface Database {
           title?: string;
           status?: EditionStatus;
           window_start?: string | null;
+          publish_not_before?: string | null;
           layout?: Json;
           tex_path?: string | null;
           tex_hash?: string | null;
@@ -373,6 +496,27 @@ export interface Database {
           p_approved: boolean;
         };
         Returns: string;
+      };
+      claim_publication_email_delivery: {
+        Args: { p_delivery_id: string };
+        Returns: Json;
+      };
+      finish_publication_email_delivery: {
+        Args: {
+          p_delivery_id: string;
+          p_status: string;
+          p_provider_id: string | null;
+          p_error: string | null;
+        };
+        Returns: undefined;
+      };
+      record_publication_email_consent: {
+        Args: { p_emails: string[]; p_tokens: string[] };
+        Returns: undefined;
+      };
+      unsubscribe_publication_email: {
+        Args: { p_token: string };
+        Returns: boolean;
       };
       store_ingested_article: {
         Args: {

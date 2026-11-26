@@ -7,6 +7,7 @@ import type { Json } from "@/lib/supabase/types";
 import { planItemSchema } from "@/lib/magazine/plan";
 import {
   evaluatePublishReadiness,
+  MAX_ISSUE_COVERAGE_DAYS,
   type PublishReadiness,
   type StoryReview,
 } from "@/lib/magazine/publication-readiness";
@@ -17,6 +18,7 @@ export type { PublishReadiness } from "@/lib/magazine/publication-readiness";
 type EditionForReadiness = {
   id: string;
   created_at: string;
+  publish_not_before: string | null;
   window_start: string | null;
   pdf_path: string | null;
   tex_hash: string | null;
@@ -66,12 +68,18 @@ export async function getDraftPublishReadiness(
   const admin = createSupabaseAdminClient();
   const storyIds = getPlanStoryIds(edition.layout);
   const uniqueStoryIds = [...new Set(storyIds)];
-  const windowStart = edition.window_start ?? edition.created_at;
+  const configuredWindowStart = Date.parse(
+    edition.window_start ?? edition.created_at,
+  );
+  const rollingWindowStart =
+    Date.now() - MAX_ISSUE_COVERAGE_DAYS * 24 * 60 * 60 * 1000;
+  const windowStart = new Date(
+    Math.max(configuredWindowStart, rollingWindowStart),
+  ).toISOString();
   const [
     selectedResult,
-    approvedResult,
+    eligibleResult,
     pendingAiResult,
-    pendingEditorResult,
     articleResult,
     sourcePassResult,
     trustedSourceResult,
@@ -90,9 +98,9 @@ export async function getDraftPublishReadiness(
       admin
         .from("stories")
         .select("id")
-        .eq("status", "approved")
+        .in("status", ["ready", "approved"])
         .eq("is_ai_related", true)
-        .gte("last_updated_at", windowStart)
+        .gte("first_seen_at", windowStart)
         .order("id", { ascending: true })
         .range(from, to),
     ),
@@ -101,14 +109,7 @@ export async function getDraftPublishReadiness(
       .select("id", { count: "exact", head: true })
       .eq("status", "candidate")
       .eq("needs_reprocess", true)
-      .gte("last_updated_at", windowStart),
-    admin
-      .from("stories")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "candidate")
-      .eq("is_ai_related", true)
-      .eq("needs_reprocess", false)
-      .gte("last_updated_at", windowStart),
+      .gte("first_seen_at", windowStart),
     uniqueStoryIds.length
       ? fetchRowsByIds(uniqueStoryIds, (ids, from, to) =>
           admin
@@ -140,9 +141,8 @@ export async function getDraftPublishReadiness(
 
   if (
     selectedResult.error ||
-    approvedResult.error ||
+    eligibleResult.error ||
     pendingAiResult.error ||
-    pendingEditorResult.error ||
     articleResult.error ||
     sourcePassResult.error ||
     trustedSourceResult.error
@@ -210,6 +210,7 @@ export async function getDraftPublishReadiness(
   return evaluatePublishReadiness({
     editionId: edition.id,
     createdAt: edition.created_at,
+    publishNotBefore: edition.publish_not_before,
     pdfPath: edition.pdf_path,
     texHash: edition.tex_hash,
     pdfTexHash: edition.pdf_tex_hash,
@@ -217,10 +218,9 @@ export async function getDraftPublishReadiness(
     editorNoteApproved: edition.editor_note_approved,
     planUsesGemini: planUsesGemini(edition.layout),
     storyIds,
-    approvedStoryIds: (approvedResult.data ?? []).map((story) => story.id),
+    eligibleStoryIds: (eligibleResult.data ?? []).map((story) => story.id),
     stories,
     pendingAiReviews: pendingAiResult.count ?? 0,
-    pendingEditorReviews: pendingEditorResult.count ?? 0,
     fullSourcePassComplete,
   });
 }

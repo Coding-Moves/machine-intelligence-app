@@ -1,7 +1,8 @@
 import type { MagazineSectionId } from "@/config/magazine";
 
 export type Section = MagazineSectionId;
-export type StoryStatus = "candidate" | "approved" | "rejected" | "published";
+export type StoryStatus =
+  "candidate" | "ready" | "approved" | "rejected" | "published";
 export type SourceKind = "news" | "official_blog" | "research" | "government";
 export type SourceRegion = "pakistan" | "global";
 
