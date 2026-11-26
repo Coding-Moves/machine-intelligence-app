@@ -18,6 +18,7 @@ import { generateMissingStoryIllustrations } from "@/lib/ingest/illustrations";
 import { rebuildMagazineDraft } from "@/lib/magazine/build";
 import { MAX_ISSUE_COVERAGE_DAYS } from "@/lib/magazine/publication-readiness";
 import { shouldRebuildMagazineDraft } from "@/lib/magazine/rebuild-needed";
+import { getShortItemWarnings } from "@/lib/ingest/short-item-warnings";
 
 const MAX_FULL_TEXT_REQUESTS_PER_SOURCE = 2;
 const URL_HASH_LOOKUP_BATCH_SIZE = 50;
@@ -240,14 +241,7 @@ export async function runIngest() {
       }
     }
 
-    for (const [sourceName, count] of shortItemsBySource) {
-      const existingError = sourceErrors.find(
-        (sourceError) => sourceError.source === sourceName,
-      );
-      const message = `${count} recent feed item${count === 1 ? "" : "s"} had too little text to review and were not added to the magazine.`;
-      if (existingError) existingError.message += ` ${message}`;
-      else sourceErrors.push({ source: sourceName, message });
-    }
+    warnings.push(...getShortItemWarnings(shortItemsBySource));
 
     if (!sources?.length) {
       sourceErrors.push({
